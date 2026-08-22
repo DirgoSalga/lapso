@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { derive, formatDuration, HOUR_MS, INTENSITY_CAP_HOURS, ABSURD_MS } from './clock'
+import { derive, formatDuration, formatElapsedClock, HOUR_MS, INTENSITY_CAP_HOURS, ABSURD_MS } from './clock'
 import type { FastInput } from './clock'
 
 const NOW = 1_700_000_000_000
@@ -224,5 +224,23 @@ describe('formatDuration()', () => {
     expect(formatDuration(45 * 60_000)).toBe('45 minutes')
     expect(formatDuration(30_000)).toBe('30 seconds')
     expect(formatDuration(-5000)).toBe('0 seconds')
+  })
+})
+
+describe('formatElapsedClock()', () => {
+  it('matches the spec §5.4 "14:22:07" digital-clock layout', () => {
+    expect(formatElapsedClock(14 * H + 22 * 60_000 + 7000)).toBe('14:22:07')
+  })
+
+  it('zero-pads single digits', () => {
+    expect(formatElapsedClock(H + 5 * 60_000 + 3000)).toBe('01:05:03')
+  })
+
+  it('does not wrap hours at 24: it counts elapsed duration, not wall time', () => {
+    expect(formatElapsedClock(38 * H)).toBe('38:00:00')
+  })
+
+  it('clamps negative durations to zero', () => {
+    expect(formatElapsedClock(-5000)).toBe('00:00:00')
   })
 })

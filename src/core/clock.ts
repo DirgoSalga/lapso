@@ -84,3 +84,15 @@ export function formatDuration(ms: number): string {
   if (minutes > 0) return `${minutes} minute${minutes === 1 ? '' : 's'}`
   return `${seconds} second${seconds === 1 ? '' : 's'}`
 }
+
+// The big digital-clock readout (spec §5.4 layout: "14:22:07"), distinct
+// from formatDuration()'s prose used for aria-valuetext and milestone copy.
+// Hours are not wrapped at 24: this counts elapsed duration, not wall time.
+export function formatElapsedClock(ms: number): string {
+  const total = Math.max(0, ms)
+  const hours = Math.floor(total / HOUR_MS)
+  const minutes = Math.floor((total % HOUR_MS) / 60_000)
+  const seconds = Math.floor((total % 60_000) / 1000)
+  const pad = (n: number) => n.toString().padStart(2, '0')
+  return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`
+}

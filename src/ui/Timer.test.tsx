@@ -79,9 +79,11 @@ describe('<Timer> active fast', () => {
 
   it('continues the readout from elapsed time on a fresh mount, not from zero (spec §14)', () => {
     startFast(Date.now() - 30_000, 16)
-    render(<Timer />)
+    const { container } = render(<Timer />)
 
-    expect(screen.getByText('30 seconds')).toBeTruthy()
+    // Digits render as individual fixed-width spans (spec §5.3 tnum
+    // fallback), so the digital-clock string is fragmented across nodes.
+    expect(container.querySelector('.readout-time')?.textContent).toBe('00:00:30')
   })
 
   it('reflects another tab ending the fast without a reload (spec §14 two tabs)', () => {
@@ -96,5 +98,52 @@ describe('<Timer> active fast', () => {
     })
 
     expect(screen.getByRole('button', { name: 'Start fast' })).toBeTruthy()
+  })
+})
+
+describe('<Timer> goal swell (spec §5.6)', () => {
+  function mockVibrate() {
+    const spy = vi.fn()
+    Object.defineProperty(navigator, 'vibrate', { value: spy, configurable: true })
+    return spy
+  }
+
+  it('fires vibrate exactly once on the fasting->overtime crossing, not again later in overtime', () => {
+    vi.useFakeTimers()
+    try {
+      const vibrateSpy = mockVibrate()
+      startFast(Date.now() - (16 * HOUR_MS - 500), 16) // 500ms shy of goal
+      render(<Timer />)
+
+      act(() => {
+        vi.advanceTimersByTime(1500) // crosses the goal within a couple of frames
+      })
+      expect(vibrateSpy).toHaveBeenCalledTimes(1)
+      expect(vibrateSpy).toHaveBeenCalledWith([40, 60, 40])
+
+      act(() => {
+        vi.advanceTimersByTime(5000)
+      })
+      expect(vibrateSpy).toHaveBeenCalledTimes(1)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('skips the swell entirely when settings.reduceMotion is "always"', () => {
+    vi.useFakeTimers()
+    try {
+      const vibrateSpy = mockVibrate()
+      saveSettings({ ...defaultSettings(), reduceMotion: 'always' })
+      startFast(Date.now() - (16 * HOUR_MS - 500), 16)
+      render(<Timer />)
+
+      act(() => {
+        vi.advanceTimersByTime(1500)
+      })
+      expect(vibrateSpy).not.toHaveBeenCalled()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })

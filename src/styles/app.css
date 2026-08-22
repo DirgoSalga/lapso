@@ -16,6 +16,16 @@ body {
   color: var(--text-primary);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
+  /* The heat-ramp background is written per frame from JS (spec §5.2);
+     it must track truth like the ring, never lag behind an eased
+     transition. The one exception is the 900ms goal swell below. */
+  transition: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  body.swelling {
+    transition: background-color 900ms ease-out;
+  }
 }
 
 .shell {
@@ -96,6 +106,28 @@ body {
   fill: var(--ember);
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  .ring-swell-transition {
+    transition: stop-color 900ms ease-out;
+  }
+
+  @keyframes ring-swell-glow {
+    0% {
+      opacity: 0;
+    }
+    30% {
+      opacity: 0.9;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+
+  .ring-swell-glow {
+    animation: ring-swell-glow 900ms ease-out;
+  }
+}
+
 .readout {
   position: absolute;
   inset: 0;
@@ -111,8 +143,23 @@ body {
   font-family: var(--font-display);
   font-variant-numeric: tabular-nums;
   font-size: 2.25rem;
-  font-weight: 300;
   color: var(--text-primary);
+  /* spec §5.3 signature move: the numerals thicken and soften with
+     progress. --p is written on the document root per frame (or, under
+     reduced motion, snapped to 3 fixed steps by snapProgressStep()). */
+  font-variation-settings:
+    'wght' calc(300 + 400 * var(--p, 0)),
+    'SOFT' calc(0 + 100 * var(--p, 0)),
+    'opsz' calc(24 + 120 * var(--p, 0));
+}
+
+.tnum-digit {
+  /* Belt-and-braces alongside font-variant-numeric: tabular-nums above,
+     in case the loaded Fraunces cut doesn't expose the tnum feature
+     (spec §5.3) -- without this the layout jitters every second. */
+  display: inline-block;
+  width: 0.62em;
+  text-align: center;
 }
 
 .readout-goal {

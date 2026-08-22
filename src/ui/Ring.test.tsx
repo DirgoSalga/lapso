@@ -1,7 +1,7 @@
 import { act } from 'react'
 import { createRef } from 'react'
 import { render } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { Ring, RING_CIRCUMFERENCE, RING_OVERTIME_CIRCUMFERENCE } from './Ring'
 import type { RingHandle } from './Ring'
 
@@ -95,5 +95,32 @@ describe('<Ring>', () => {
       ref.current?.writeReadout({ ariaValueNow: 100, ariaValueText: 'x', progressPercent: 100, lapIndex: 3 })
     })
     expect(container.querySelectorAll('.ring-lap-dot')).toHaveLength(3)
+  })
+
+  it('triggerGoalSwell() flashes the arc to a solid ember and reverts after 900ms (spec §5.6)', () => {
+    vi.useFakeTimers()
+    try {
+      const ref = createRef<RingHandle>()
+      const { container } = render(<Ring ref={ref} milestonePercents={[]} />)
+
+      act(() => {
+        ref.current?.writeFrame({ progress: 1, lapProgress: 0, intensity: 1 })
+        ref.current?.triggerGoalSwell()
+      })
+
+      const [start, end] = container.querySelectorAll('#ring-gradient stop')
+      expect(start?.getAttribute('stop-color')).toBe(end?.getAttribute('stop-color')) // solid, no gloss split
+      expect(start?.classList.contains('ring-swell-transition')).toBe(true)
+      expect(container.querySelector('.ring-glow')?.classList.contains('ring-swell-glow')).toBe(true)
+
+      act(() => {
+        vi.advanceTimersByTime(900)
+      })
+
+      expect(start?.classList.contains('ring-swell-transition')).toBe(false)
+      expect(container.querySelector('.ring-glow')?.classList.contains('ring-swell-glow')).toBe(false)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })

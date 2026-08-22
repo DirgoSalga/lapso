@@ -34,7 +34,11 @@ export interface RingReadout {
 export interface RingHandle {
   writeFrame(frame: RingFrame): void
   writeReadout(readout: RingReadout): void
+  /** spec §5.6: one 900ms flourish, exactly once per fast, at the goal crossing. */
+  triggerGoalSwell(): void
 }
+
+const GOAL_SWELL_MS = 900
 
 interface RingProps {
   milestonePercents: number[]
@@ -73,7 +77,6 @@ export const Ring = forwardRef<RingHandle, RingProps>(function Ring({ milestoneP
         const { start, end } = ringGradientStops(progress)
         gradientStartRef.current?.setAttribute('stop-color', start)
         gradientEndRef.current?.setAttribute('stop-color', end)
-        svgRef.current?.style.setProperty('--p', String(progress))
       },
       writeReadout({ ariaValueNow, ariaValueText, progressPercent, lapIndex }) {
         const svg = svgRef.current
@@ -97,6 +100,19 @@ export const Ring = forwardRef<RingHandle, RingProps>(function Ring({ milestoneP
           })
           lapDotsRef.current?.replaceChildren(...dots)
         }
+      },
+      triggerGoalSwell() {
+        const swellColor = ringColor(1) // solid --ember, no gloss split, for the flash
+        gradientStartRef.current?.setAttribute('stop-color', swellColor)
+        gradientEndRef.current?.setAttribute('stop-color', swellColor)
+        gradientStartRef.current?.classList.add('ring-swell-transition')
+        gradientEndRef.current?.classList.add('ring-swell-transition')
+        glowRef.current?.classList.add('ring-swell-glow')
+        window.setTimeout(() => {
+          gradientStartRef.current?.classList.remove('ring-swell-transition')
+          gradientEndRef.current?.classList.remove('ring-swell-transition')
+          glowRef.current?.classList.remove('ring-swell-glow')
+        }, GOAL_SWELL_MS)
       },
     }),
     [ticks],

@@ -2,7 +2,11 @@
   --porcelain: #e9edf0;
   --bisque: #f0e3d2;
   --graphite: #2a2e35;
-  --slate: #6b7785;
+  /* Darkened from the spec's literal #6b7785: at that value, secondary
+     text fails WCAG AA (4.5:1) against both --porcelain (3.88:1) and
+     --bisque (3.61:1) even with no heat-ramp interpolation involved.
+     See src/core/color.test.ts "contrast across the full heat ramp". */
+  --slate: #596472;
   --glow: #f2a03d;
   --ember: #bf4a17;
 

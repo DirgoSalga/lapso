@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { derive, formatDuration, HOUR_MS } from '../core/clock'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { derive, formatDuration, formatElapsedClock, HOUR_MS } from '../core/clock'
+import { resolveTheme, snapProgressStep, surfaceColor } from '../core/color'
 import { formatClockTime, fromDatetimeLocalValue, toDatetimeLocalValue } from '../core/time'
 import {
   endFast,
@@ -34,6 +35,24 @@ function clampGoalHours(hours: number): number {
   return Math.min(MAX_GOAL_HOURS, hours)
 }
 
+function useMediaQueryMatches(query: string): boolean {
+  const mql = useMemo(
+    () => (typeof window !== 'undefined' && typeof window.matchMedia === 'function' ? window.matchMedia(query) : null),
+    [query],
+  )
+  const [matches, setMatches] = useState(() => mql?.matches ?? false)
+
+  useEffect(() => {
+    if (!mql) return
+    const handleChange = () => setMatches(mql.matches)
+    handleChange()
+    mql.addEventListener('change', handleChange)
+    return () => mql.removeEventListener('change', handleChange)
+  }, [mql])
+
+  return matches
+}
+
 interface ReadoutState {
   display: string
   phase: Phase
@@ -48,6 +67,11 @@ export function Timer() {
   const ringRef = useRef<RingHandle>(null)
   const [readout, setReadout] = useState<ReadoutState | null>(null)
 
+  const prefersDark = useMediaQueryMatches('(prefers-color-scheme: dark)')
+  const prefersReducedMotion = useMediaQueryMatches('(prefers-reduced-motion: reduce)')
+  const theme = resolveTheme(settings.theme, prefersDark)
+  const reduceMotion = settings.reduceMotion === 'always' || prefersReducedMotion
+
   useEffect(
     () =>
       subscribe(() => {
@@ -58,13 +82,20 @@ export function Timer() {
   )
 
   useEffect(() => {
+    document.documentElement.dataset.theme = settings.theme
+  }, [settings.theme])
+
+  useEffect(() => {
     if (!active) {
       setReadout(null)
+      document.body.style.backgroundColor = ''
+      document.documentElement.style.setProperty('--p', '0')
       return
     }
 
     let rafId = 0
     let intervalId = 0
+    let previousPhase: Phase | null = null
 
     const buildDerived = (now: number) =>
       derive({
@@ -78,7 +109,26 @@ export function Timer() {
     const frame = () => {
       if (document.hidden) return
       const d = buildDerived(Date.now())
-      ringRef.current?.writeFrame({ progress: d.progress, lapProgress: d.lapProgress, intensity: d.intensity })
+
+      document.body.style.backgroundColor = surfaceColor(d.progress, theme)
+      document.documentElement.style.setProperty('--p', String(reduceMotion ? snapProgressStep(d.progress) : d.progress))
+      // Under reduced motion the ring's position/color still update (spec
+      // §5.6: "that is information, not decoration"); only the ambient
+      // glow's continuous fade is suppressed, along with the swell below.
+      ringRef.current?.writeFrame({
+        progress: d.progress,
+        lapProgress: d.lapProgress,
+        intensity: reduceMotion ? 0 : d.intensity,
+      })
+
+      if (previousPhase === 'fasting' && d.phase === 'overtime' && !reduceMotion) {
+        ringRef.current?.triggerGoalSwell()
+        document.body.classList.add('swelling')
+        window.setTimeout(() => document.body.classList.remove('swelling'), 900)
+        navigator.vibrate?.([40, 60, 40])
+      }
+      previousPhase = d.phase
+
       if (d.absurd) return // freeze: no further frames scheduled (spec §10 absurd duration)
       rafId = requestAnimationFrame(frame)
     }
@@ -101,7 +151,7 @@ export function Timer() {
         lapIndex: d.lapIndex,
       })
       setReadout({
-        display: formatDuration(d.elapsedMs),
+        display: formatElapsedClock(d.elapsedMs),
         phase: d.phase,
         absurd: d.absurd,
         clockRolledBack: rolledBack,
@@ -127,8 +177,10 @@ export function Timer() {
       cancelAnimationFrame(rafId)
       clearInterval(intervalId)
       document.removeEventListener('visibilitychange', handleVisibility)
+      document.body.style.backgroundColor = ''
+      document.body.classList.remove('swelling')
     }
-  }, [active, settings.milestonePercents])
+  }, [active, settings.milestonePercents, theme, reduceMotion])
 
   const handleEndFast = useCallback(() => {
     endFast(Date.now())
@@ -178,7 +230,9 @@ export function Timer() {
           <div className="timer-ring-wrap">
             <Ring ref={ringRef} milestonePercents={settings.milestonePercents} />
             <div className="readout">
-              <div className="readout-time">{readout?.display ?? '—'}</div>
+              <div className="readout-time">
+                <TabularTime value={readout?.display ?? '00:00:00'} />
+              </div>
               <div className="readout-goal">goal {pluralHours(active.goalHours)}</div>
             </div>
           </div>
@@ -273,6 +327,23 @@ function IdleStart({ defaultGoalHours, onStart }: IdleStartProps) {
         </button>
       </div>
     </main>
+  )
+}
+
+const DIGIT = /[0-9]/
+
+// Wraps each digit in a fixed-width span (spec §5.3) so the layout never
+// jitters per second, regardless of whether the loaded Fraunces cut
+// actually exposes the tnum OpenType feature.
+function TabularTime({ value }: { value: string }) {
+  return (
+    <>
+      {[...value].map((char, i) => (
+        <span key={i} className={DIGIT.test(char) ? 'tnum-digit' : undefined}>
+          {char}
+        </span>
+      ))}
+    </>
   )
 }
 
