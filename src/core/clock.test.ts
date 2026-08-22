@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { derive, formatDuration, formatElapsedClock, HOUR_MS, INTENSITY_CAP_HOURS, ABSURD_MS } from './clock'
+import {
+  derive,
+  formatDuration,
+  formatElapsedClock,
+  formatShortDuration,
+  HOUR_MS,
+  INTENSITY_CAP_HOURS,
+  ABSURD_MS,
+} from './clock'
 import type { FastInput } from './clock'
 
 const NOW = 1_700_000_000_000
@@ -242,5 +250,19 @@ describe('formatElapsedClock()', () => {
 
   it('clamps negative durations to zero', () => {
     expect(formatElapsedClock(-5000)).toBe('00:00:00')
+  })
+})
+
+describe('formatShortDuration()', () => {
+  it('matches the spec §5.4 sparkline examples', () => {
+    expect(formatShortDuration(16 * H + 2 * 60_000)).toBe('16h02')
+    expect(formatShortDuration(15 * H + 48 * 60_000)).toBe('15h48')
+    expect(formatShortDuration(16 * H + 30 * 60_000)).toBe('16h30')
+    expect(formatShortDuration(17 * H + 11 * 60_000)).toBe('17h11')
+  })
+
+  it('drops seconds and clamps negative durations to zero', () => {
+    expect(formatShortDuration(45 * 60_000 + 59_000)).toBe('0h45')
+    expect(formatShortDuration(-5000)).toBe('0h00')
   })
 })

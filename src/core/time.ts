@@ -20,3 +20,13 @@ export function toDatetimeLocalValue(ms: number): string {
 export function fromDatetimeLocalValue(value: string): number {
   return new Date(value).getTime()
 }
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+// History's mono timestamps (spec §8). Hand-rolled rather than
+// Intl.DateTimeFormat so the format is locale-independent and testable.
+export function formatDateTime(ms: number): string {
+  const d = new Date(ms)
+  const month = MONTHS[d.getMonth()] ?? ''
+  return `${month} ${d.getDate()}, ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}

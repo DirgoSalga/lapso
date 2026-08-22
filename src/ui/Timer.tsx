@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { derive, formatDuration, formatElapsedClock, hourGoalLabel, HOUR_MS, pluralHours } from '../core/clock'
+import {
+  derive,
+  formatDuration,
+  formatElapsedClock,
+  formatShortDuration,
+  hourGoalLabel,
+  HOUR_MS,
+  pluralHours,
+} from '../core/clock'
 import { resolveTheme, snapProgressStep, surfaceColor } from '../core/color'
 import { catchUpCopy, headlineMilestone, milestoneCopy } from '../core/milestones'
 import { showMilestoneNotification } from '../core/notify'
@@ -9,13 +17,14 @@ import {
   getLastSeenNow,
   hasClockRolledBack,
   loadActive,
+  loadHistory,
   loadSettings,
   recordLastSeenNow,
   saveActive,
   startFast,
   subscribe,
 } from '../core/storage'
-import type { ActiveFast, Phase, Settings } from '../core/types'
+import type { ActiveFast, CompletedFast, Phase, Settings } from '../core/types'
 import { Ring } from './Ring'
 import type { RingHandle } from './Ring'
 
@@ -69,6 +78,7 @@ interface MilestoneNotice {
 export function Timer() {
   const [active, setActive] = useState<ActiveFast | null>(() => loadActive())
   const [settings, setSettings] = useState<Settings>(() => loadSettings())
+  const [history, setHistory] = useState<CompletedFast[]>(() => loadHistory())
   const ringRef = useRef<RingHandle>(null)
   const [readout, setReadout] = useState<ReadoutState | null>(null)
   const [milestoneToast, setMilestoneToast] = useState<MilestoneNotice | null>(null)
@@ -86,6 +96,7 @@ export function Timer() {
       subscribe(() => {
         setActive(loadActive())
         setSettings(loadSettings())
+        setHistory(loadHistory())
       }),
     [],
   )
@@ -272,7 +283,12 @@ export function Timer() {
     <>
       {active ? (
         <main className="shell" data-phase={readout?.phase ?? 'fasting'}>
-          <p className="eyebrow">fasting since {formatClockTime(active.startedAt)}</p>
+          <div className="eyebrow-row">
+            <p className="eyebrow">fasting since {formatClockTime(active.startedAt)}</p>
+            <a className="eyebrow-link" href="#/settings">
+              settings
+            </a>
+          </div>
 
           {catchUpCard && (
             <div className="banner" role="status">
@@ -310,9 +326,11 @@ export function Timer() {
           <button type="button" className="btn btn-end" onClick={handleEndFast}>
             End fast
           </button>
+
+          <RecentFasts history={history} />
         </main>
       ) : (
-        <IdleStart defaultGoalHours={settings.defaultGoalHours} onStart={handleIdleStart} />
+        <IdleStart defaultGoalHours={settings.defaultGoalHours} onStart={handleIdleStart} history={history} />
       )}
 
       {undoVisible && (
@@ -336,9 +354,10 @@ export function Timer() {
 interface IdleStartProps {
   defaultGoalHours: number
   onStart: (startedAt: number, goalHours: number) => void
+  history: CompletedFast[]
 }
 
-function IdleStart({ defaultGoalHours, onStart }: IdleStartProps) {
+function IdleStart({ defaultGoalHours, onStart, history }: IdleStartProps) {
   const [goalHours, setGoalHours] = useState(defaultGoalHours)
   // null = untouched: resolves to "now" at submit time. A string here would
   // round-trip through datetime-local's minute precision and silently
@@ -361,7 +380,12 @@ function IdleStart({ defaultGoalHours, onStart }: IdleStartProps) {
 
   return (
     <main className="shell" data-phase="idle">
-      <p className="eyebrow">lapso</p>
+      <div className="eyebrow-row">
+        <p className="eyebrow">lapso</p>
+        <a className="eyebrow-link" href="#/settings">
+          settings
+        </a>
+      </div>
 
       <div className="idle-form">
         <label className="field">
@@ -395,7 +419,28 @@ function IdleStart({ defaultGoalHours, onStart }: IdleStartProps) {
           Start fast
         </button>
       </div>
+
+      <RecentFasts history={history} />
     </main>
+  )
+}
+
+// Last 4 durations, neutral and tappable through to History (spec §5.4
+// layout: "recent 16h02 15h48 16h30 17h11"). Oldest-to-newest, matching
+// the same left-to-right convention as Chart.
+function RecentFasts({ history }: { history: CompletedFast[] }) {
+  const recent = history.slice(-4)
+  if (recent.length === 0) return null
+
+  return (
+    <a className="recent-fasts" href="#/history">
+      <span className="recent-fasts-label">recent</span>
+      {recent.map((fast) => (
+        <span key={fast.id} className="mono">
+          {formatShortDuration(fast.endedAt - fast.startedAt)}
+        </span>
+      ))}
+    </a>
   )
 }
 

@@ -288,3 +288,129 @@ body {
   color: var(--text-primary);
   cursor: pointer;
 }
+
+.eyebrow-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  max-width: 320px;
+}
+
+.eyebrow-link {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+
+.eyebrow-link:hover {
+  text-decoration: underline;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+}
+
+.recent-fasts {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 320px;
+  margin-top: 32px;
+  padding-top: 16px;
+  border-top: 1px solid color-mix(in srgb, var(--slate) 30%, transparent);
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+
+.recent-fasts-label {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.7rem;
+}
+
+.shell-wide {
+  max-width: 480px;
+}
+
+.empty-state {
+  margin-top: 32px;
+  color: var(--text-secondary);
+  font-size: 0.9375rem;
+}
+
+.chart {
+  width: 100%;
+  margin: 16px 0 24px;
+}
+
+.chart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.chart-bar {
+  fill: var(--slate);
+}
+
+.chart-caption {
+  margin: 8px 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+}
+
+.history-row {
+  border-bottom: 1px solid color-mix(in srgb, var(--slate) 25%, transparent);
+}
+
+.history-row-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 4px;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.history-row-goal {
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+}
+
+.history-row-detail {
+  padding: 0 4px 12px;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.history-row-detail p {
+  margin: 0 0 4px;
+}

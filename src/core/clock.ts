@@ -107,3 +107,12 @@ export function formatElapsedClock(ms: number): string {
   const pad = (n: number) => n.toString().padStart(2, '0')
   return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`
 }
+
+// The compact "16h02" form used for the recent-fasts sparkline and history
+// list (spec §5.4 layout mockup: "recent 16h02 15h48 16h30 17h11").
+export function formatShortDuration(ms: number): string {
+  const total = Math.max(0, ms)
+  const hours = Math.floor(total / HOUR_MS)
+  const minutes = Math.floor((total % HOUR_MS) / 60_000)
+  return `${hours}h${minutes.toString().padStart(2, '0')}`
+}

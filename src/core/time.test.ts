@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatClockTime, fromDatetimeLocalValue, toDatetimeLocalValue } from './time'
+import { formatClockTime, formatDateTime, fromDatetimeLocalValue, toDatetimeLocalValue } from './time'
 
 describe('formatClockTime()', () => {
   it('zero-pads hours and minutes', () => {
@@ -24,5 +24,17 @@ describe('datetime-local round trip', () => {
   it('pads single-digit month and day', () => {
     const original = new Date(2026, 0, 5, 8, 3).getTime()
     expect(toDatetimeLocalValue(original)).toBe('2026-01-05T08:03')
+  })
+})
+
+describe('formatDateTime()', () => {
+  it('formats as "Mon D, HH:MM" independent of locale', () => {
+    const d = new Date(2026, 7, 20, 14, 2)
+    expect(formatDateTime(d.getTime())).toBe('Aug 20, 14:02')
+  })
+
+  it('does not zero-pad the day', () => {
+    const d = new Date(2026, 0, 5, 8, 3)
+    expect(formatDateTime(d.getTime())).toBe('Jan 5, 08:03')
   })
 })
