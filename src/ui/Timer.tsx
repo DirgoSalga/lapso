@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { derive, formatDuration, formatElapsedClock, HOUR_MS } from '../core/clock'
+import { derive, formatDuration, formatElapsedClock, hourGoalLabel, HOUR_MS, pluralHours } from '../core/clock'
 import { resolveTheme, snapProgressStep, surfaceColor } from '../core/color'
+import { catchUpCopy, headlineMilestone, milestoneCopy } from '../core/milestones'
+import { showMilestoneNotification } from '../core/notify'
 import { formatClockTime, fromDatetimeLocalValue, toDatetimeLocalValue } from '../core/time'
 import {
   endFast,
@@ -21,10 +23,8 @@ const MAX_GOAL_HOURS = 48
 const DOCTOR_NOTE_THRESHOLD_HOURS = 24
 const START_TIME_WINDOW_MS = 48 * HOUR_MS
 const UNDO_WINDOW_MS = 5000
-
-function pluralHours(n: number): string {
-  return `${n} hour${n === 1 ? '' : 's'}`
-}
+const MILESTONE_TOAST_MS = 6000
+const NOTIFICATION_TITLE = 'Lapso'
 
 function clampStartedAt(ms: number, now: number): number {
   return Math.min(now, Math.max(now - START_TIME_WINDOW_MS, ms))
@@ -61,11 +61,20 @@ interface ReadoutState {
   suggestedStart: number
 }
 
+interface MilestoneNotice {
+  key: string
+  copy: string
+}
+
 export function Timer() {
   const [active, setActive] = useState<ActiveFast | null>(() => loadActive())
   const [settings, setSettings] = useState<Settings>(() => loadSettings())
   const ringRef = useRef<RingHandle>(null)
   const [readout, setReadout] = useState<ReadoutState | null>(null)
+  const [milestoneToast, setMilestoneToast] = useState<MilestoneNotice | null>(null)
+  const [catchUpCard, setCatchUpCard] = useState<MilestoneNotice | null>(null)
+  const milestoneToastTimeoutRef = useRef<number | undefined>(undefined)
+  useEffect(() => () => window.clearTimeout(milestoneToastTimeoutRef.current), [])
 
   const prefersDark = useMediaQueryMatches('(prefers-color-scheme: dark)')
   const prefersReducedMotion = useMediaQueryMatches('(prefers-reduced-motion: reduce)')
@@ -88,6 +97,7 @@ export function Timer() {
   useEffect(() => {
     if (!active) {
       setReadout(null)
+      setCatchUpCard(null)
       document.body.style.backgroundColor = ''
       document.documentElement.style.setProperty('--p', '0')
       return
@@ -96,15 +106,38 @@ export function Timer() {
     let rafId = 0
     let intervalId = 0
     let previousPhase: Phase | null = null
+    // Authoritative for this effect's lifetime: firing persists via
+    // saveActive(), but that write reaches `active` only after storage's
+    // subscribe callback round-trips through React. Without this local
+    // copy, frames in that window would keep re-deriving the same
+    // already-fired key against the stale closure and fire it again.
+    const sessionFired = new Set(active.firedMilestones)
 
     const buildDerived = (now: number) =>
       derive({
         startedAt: active.startedAt,
         goalHours: active.goalHours,
-        firedMilestones: active.firedMilestones,
+        firedMilestones: [...sessionFired],
         milestonePercents: settings.milestonePercents,
         now,
       })
+
+    // spec §6.3: on every launch (or any jump that surfaces more than the
+    // usual single next milestone), one consolidated retrospective card,
+    // not a burst of live notifications for each one.
+    const initialDue = buildDerived(Date.now()).dueMilestones
+    if (initialDue.length > 0) {
+      for (const key of initialDue) sessionFired.add(key)
+      saveActive({ ...active, firedMilestones: [...sessionFired] })
+      const headline = headlineMilestone(initialDue)
+      if (headline) {
+        const d = buildDerived(Date.now())
+        setCatchUpCard({
+          key: headline,
+          copy: catchUpCopy({ key: headline, goalHours: active.goalHours, goalMs: d.goalMs, elapsedMs: d.elapsedMs }),
+        })
+      }
+    }
 
     const frame = () => {
       if (document.hidden) return
@@ -144,9 +177,30 @@ export function Timer() {
         previousLastSeenNow !== null ? Math.max(0, previousLastSeenNow - active.startedAt) : d.elapsedMs
       const suggestedStart = now - elapsedAtLastSeen
 
+      // Live path (spec §6.1): each newly-due key here was NOT already
+      // swept up by the catch-up check above, so it just crossed for real
+      // while this session was actively watching -- fire it properly.
+      if (d.dueMilestones.length > 0) {
+        for (const key of d.dueMilestones) sessionFired.add(key)
+        saveActive({ ...active, firedMilestones: [...sessionFired] })
+        for (const key of d.dueMilestones) {
+          const copy = milestoneCopy({ key, goalHours: active.goalHours, goalMs: d.goalMs, elapsedMs: d.elapsedMs })
+          void showMilestoneNotification(NOTIFICATION_TITLE, copy)
+        }
+        const headline = headlineMilestone(d.dueMilestones)
+        if (headline) {
+          setMilestoneToast({
+            key: headline,
+            copy: milestoneCopy({ key: headline, goalHours: active.goalHours, goalMs: d.goalMs, elapsedMs: d.elapsedMs }),
+          })
+          window.clearTimeout(milestoneToastTimeoutRef.current)
+          milestoneToastTimeoutRef.current = window.setTimeout(() => setMilestoneToast(null), MILESTONE_TOAST_MS)
+        }
+      }
+
       ringRef.current?.writeReadout({
         ariaValueNow: Math.round(d.progress * 100),
-        ariaValueText: `${formatDuration(d.elapsedMs)} of a ${pluralHours(active.goalHours)} goal`,
+        ariaValueText: `${formatDuration(d.elapsedMs)} of a ${hourGoalLabel(active.goalHours)}`,
         progressPercent: d.progress * 100,
         lapIndex: d.lapIndex,
       })
@@ -220,6 +274,15 @@ export function Timer() {
         <main className="shell" data-phase={readout?.phase ?? 'fasting'}>
           <p className="eyebrow">fasting since {formatClockTime(active.startedAt)}</p>
 
+          {catchUpCard && (
+            <div className="banner" role="status">
+              <p>{catchUpCard.copy}</p>
+              <button type="button" onClick={() => setCatchUpCard(null)}>
+                Dismiss
+              </button>
+            </div>
+          )}
+
           {readout?.clockRolledBack && (
             <div className="banner" role="status">
               <p>Your device clock moved backwards. The elapsed time above may be wrong.</p>
@@ -258,6 +321,12 @@ export function Timer() {
           <button type="button" onClick={handleUndo}>
             Undo
           </button>
+        </div>
+      )}
+
+      {!undoVisible && milestoneToast && (
+        <div className="toast" role="status">
+          <span>{milestoneToast.copy}</span>
         </div>
       )}
     </>

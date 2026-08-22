@@ -1,7 +1,7 @@
 import { act, render, screen, fireEvent, cleanup } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Timer } from './Timer'
-import { defaultSettings, endFast, loadHistory, saveSettings, startFast } from '../core/storage'
+import { defaultSettings, endFast, loadActive, loadHistory, saveSettings, startFast } from '../core/storage'
 import { HOUR_MS } from '../core/clock'
 
 beforeEach(() => {
@@ -142,6 +142,76 @@ describe('<Timer> goal swell (spec §5.6)', () => {
         vi.advanceTimersByTime(1500)
       })
       expect(vibrateSpy).not.toHaveBeenCalled()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+})
+
+describe('<Timer> milestones (spec §6)', () => {
+  it('shows one consolidated catch-up card for a milestone already overdue at launch, and marks it fired', () => {
+    startFast(Date.now() - (16 * HOUR_MS + 40 * 60_000), 16) // 40 minutes past goal
+    render(<Timer />)
+
+    expect(screen.getByText('You passed your 16 hour goal 40 minutes ago.')).toBeTruthy()
+    expect(loadActive()?.firedMilestones).toEqual(['p50', 'p90', 'goal'])
+  })
+
+  it('does not re-show the catch-up card on a later refresh, since it is already fired', () => {
+    startFast(Date.now() - (16 * HOUR_MS + 40 * 60_000), 16)
+    const first = render(<Timer />)
+    expect(screen.getByText('You passed your 16 hour goal 40 minutes ago.')).toBeTruthy()
+    first.unmount()
+
+    render(<Timer />)
+    expect(screen.queryByText(/You passed your 16 hour goal/)).toBeNull()
+  })
+
+  it('dismisses the catch-up card on click without un-firing the milestone', () => {
+    startFast(Date.now() - (16 * HOUR_MS + 40 * 60_000), 16)
+    render(<Timer />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }))
+
+    expect(screen.queryByText(/You passed your 16 hour goal/)).toBeNull()
+    expect(loadActive()?.firedMilestones).toEqual(['p50', 'p90', 'goal'])
+  })
+
+  it('fires a milestone exactly once across three consecutive refreshes (spec §14)', () => {
+    startFast(Date.now() - 9 * HOUR_MS, 16) // past the 50% mark, well short of goal
+
+    const r1 = render(<Timer />)
+    expect(loadActive()?.firedMilestones).toEqual(['p50'])
+    r1.unmount()
+
+    const r2 = render(<Timer />)
+    expect(loadActive()?.firedMilestones).toEqual(['p50'])
+    r2.unmount()
+
+    const r3 = render(<Timer />)
+    expect(loadActive()?.firedMilestones).toEqual(['p50'])
+    r3.unmount()
+  })
+
+  it('fires the live in-app toast exactly once on crossing a milestone while mounted', () => {
+    vi.useFakeTimers()
+    try {
+      startFast(Date.now() - (8 * HOUR_MS - 500), 16) // 500ms shy of the 50% mark
+      render(<Timer />)
+      expect(screen.queryByText('Half way. 8 hours in.')).toBeNull()
+
+      act(() => {
+        vi.advanceTimersByTime(1500) // crosses 50% within a couple of frames
+      })
+
+      expect(screen.getByText('Half way. 8 hours in.')).toBeTruthy()
+      expect(loadActive()?.firedMilestones).toEqual(['p50'])
+
+      act(() => {
+        vi.advanceTimersByTime(2000)
+      })
+      // still just the one toast instance -- not re-fired on a later tick
+      expect(loadActive()?.firedMilestones).toEqual(['p50'])
     } finally {
       vi.useRealTimers()
     }

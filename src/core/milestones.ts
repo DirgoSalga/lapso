@@ -1,3 +1,5 @@
+import { formatDuration, hourGoalLabel, HOUR_MS, pluralHours } from './clock'
+
 export const MAX_OVERTIME_MILESTONES = 3
 
 export function milestoneKeys(
@@ -41,4 +43,56 @@ export function dueMilestones(
     seen.add(key)
     return true
   })
+}
+
+export interface MilestoneContext {
+  key: string
+  goalHours: number
+  goalMs: number
+  elapsedMs: number
+}
+
+// spec §6.4 copy, verbatim for the two default percents (50, 90); the
+// 90%-example's phrasing ("N to your goal") is actually generic and
+// covers any configured percent other than the halfway point.
+export function milestoneCopy({ key, goalHours, goalMs, elapsedMs }: MilestoneContext): string {
+  if (key === 'goal') {
+    return `${pluralHours(goalHours)} reached.`
+  }
+  if (key.startsWith('ot')) {
+    return `${pluralHours(Math.round(elapsedMs / HOUR_MS))}. Still going.`
+  }
+  if (key.startsWith('p')) {
+    const pct = Number(key.slice(1))
+    if (pct === 50) {
+      return `Half way. ${formatDuration(elapsedMs)} in.`
+    }
+    return `${formatDuration(Math.max(0, goalMs - elapsedMs))} to your goal.`
+  }
+  return ''
+}
+
+// spec §6.3: the one consolidated catch-up card, phrased retrospectively
+// ("you passed X, Y ago") rather than the live, present-tense copy above.
+export function catchUpCopy({ key, goalHours, goalMs, elapsedMs }: MilestoneContext): string {
+  if (key === 'goal' || key.startsWith('ot')) {
+    const ago = formatDuration(Math.max(0, elapsedMs - goalMs))
+    const stillGoing = key.startsWith('ot') ? ' Still going.' : ''
+    return `You passed your ${hourGoalLabel(goalHours)} ${ago} ago.${stillGoing}`
+  }
+  if (key.startsWith('p')) {
+    const pct = Number(key.slice(1))
+    const thresholdMs = (goalMs * pct) / 100
+    const ago = formatDuration(Math.max(0, elapsedMs - thresholdMs))
+    return `You passed the ${pct} percent milestone ${ago} ago.`
+  }
+  return ''
+}
+
+// Picks which of several simultaneously-due milestones headlines a single
+// consolidated catch-up card (spec §6.3: one card, not a burst). Keys come
+// out of milestoneKeys()/dueMilestones() in chronological order already,
+// so the most-advanced one crossed is simply the last.
+export function headlineMilestone(dueKeys: string[]): string | undefined {
+  return dueKeys[dueKeys.length - 1]
 }

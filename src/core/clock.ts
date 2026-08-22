@@ -70,6 +70,17 @@ export function derive(input: FastInput): Derived {
   }
 }
 
+export function pluralHours(n: number): string {
+  return `${n} hour${n === 1 ? '' : 's'}`
+}
+
+// The spec's compound-adjective idiom keeps "hour" singular regardless of
+// count ("16 hour goal", not "16 hours goal") -- see SPEC.md §6.3's catch-up
+// wording and §11's aria-valuetext example ("...of a 16 hour goal").
+export function hourGoalLabel(goalHours: number): string {
+  return `${goalHours} hour goal`
+}
+
 export function formatDuration(ms: number): string {
   const total = Math.max(0, ms)
   const hours = Math.floor(total / HOUR_MS)
