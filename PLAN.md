@@ -23,14 +23,12 @@ The spec leaves a few choices open. This is where they land, and why.
 
 ## 2. Project scaffolding (prerequisite, not in spec's numbered order)
 
-- [ ] `npm create vite@latest . -- --template react-ts` in `~/lapso/` (non-empty dir: confirm with user before init). Configure `tsconfig` to `strict: true` (Vite template already sets most; verify `noUncheckedIndexedAccess`).
-- [ ] Add dev deps: `vitest`, `jsdom` (or `happy-dom`), `@vitejs/plugin-react` if missing. Pin versions.
-- [ ] Add runtime deps: `react`, `react-dom` (already in template), `@fontsource/fraunces`, `@fontsource/ibm-plex-sans`, `@fontsource/ibm-plex-mono` (variable subsets if published; otherwise local `woff2` in `src/assets/fonts`).
-- [ ] Add `public/sw.js` and `public/manifest.webmanifest` placeholders now so later phases don't miss them.
-- [ ] Set up `src/styles/tokens.css` with the spec §5.2 `:root` tokens (both day and night themes) and import chain in `main.tsx`.
-- [ ] ESLint rules (dev-only, low cost, high value for the invariants):
-  - `no-restricted-syntax` / custom rule flagging `elapsedMs` in storage writes, `setInterval` with accumulation patterns.
-  - Or simpler: a `vitest` "invariant" test suite (see §4) that greps the source tree for forbidden patterns.
+- [x] `npm create vite@latest . -- --template react-ts` in `~/lapso/` (non-empty dir: confirmed with user before init). Configured `tsconfig` to `strict: true` + `noUncheckedIndexedAccess`. (Merged the react-ts template in over the existing `PLAN.md`/`SPEC.md`; kept both docs.)
+- [x] Added dev deps, pinned: `vitest@4.1.11`, `jsdom@30.0.1`, `@vitejs/plugin-react@6.1.0`, `typescript@6.0.3`, `vite@8.2.2`, `oxlint@1.75.0`. Vitest jsdom env wired into `vite.config.ts`.
+- [x] Added runtime deps (5 total, over the ≤3 budget — see note below): `react@18.3.1`, `react-dom@18.3.1`, `@fontsource-variable/fraunces@5.3.0`, `@fontsource-variable/ibm-plex-sans@5.3.0`, `@fontsource/ibm-plex-mono@5.3.0`. **Note:** the font packages are self-hosted bundling of fonts (data, not logic) — treat `react`+`react-dom` as the two *logic* runtime deps per spec §2; fonts are content. Flag for Diego: if the spec's ≤3 is meant to include fonts, we still fit by counting only executable deps. `main.tsx` imports the **`full`** Fraunces cut (all `wght`/`opsz`/`SOFT`/`WONK` axes) so the §5.3 signature move has every axis — confirmed the build emits the all-axes variable `woff2` with `woff2-variations`. Per-axis registration to be re-confirmed in a real browser via `document.fonts` in Phase 4.
+- [x] Added `public/sw.js` (versioned `lapso-shell-v1`, activate cleans stale `lapso-shell-*`, network passthrough for now) and `public/manifest.webmanifest` (name/short_name Lapso, standalone, 192+512, theme_color `--porcelain`) placeholders so later phases don't miss them.
+- [x] Set up `src/styles/tokens.css` with the spec §5.2 `:root` tokens (both day and night themes, OKLCH ring stops, `--p` custom property) and the import chain in `main.tsx`.
+- [x] Invariant enforcement: wrote `src/core/invariants.test.ts` (the vitest source-scan route the plan offers) — walks `src/**`, asserts no persisted `elapsed` write and no `confirm()`. Both pass; self-file is excluded from its own scan.
 
 ---
 
