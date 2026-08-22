@@ -13,3 +13,13 @@ createRoot(document.getElementById('root')!).render(
     <App />
   </StrictMode>,
 )
+
+// Production only: registering a cache-first SW against the dev server
+// would fight Vite's HMR by serving stale cached modules. The SW is what
+// makes an installed launch work with no network at all (spec §7) --
+// it must exist regardless of the notification permission state.
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js', { scope: '/' })
+  })
+}

@@ -27,9 +27,38 @@ function formatBytes(n: number): string {
   return `${(n / 1024 / 1024).toFixed(1)} MB`
 }
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt(): Promise<void>
+}
+
+// Optional affordance (PLAN.md Phase 8): browsers that support installing
+// hold the native prompt back until called explicitly, so without this the
+// only way in is a browser menu the user has to already know about.
+function useInstallPrompt() {
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      e.preventDefault()
+      setDeferredPrompt(e as BeforeInstallPromptEvent)
+    }
+    window.addEventListener('beforeinstallprompt', handler)
+    return () => window.removeEventListener('beforeinstallprompt', handler)
+  }, [])
+
+  const promptInstall = async () => {
+    if (!deferredPrompt) return
+    await deferredPrompt.prompt()
+    setDeferredPrompt(null)
+  }
+
+  return { available: deferredPrompt !== null, promptInstall }
+}
+
 export function Settings() {
   const [settings, setSettings] = useState<SettingsData>(() => loadSettings())
   const [evictionDismissed, setEvictionDismissed] = useState(() => isEvictionNoticeDismissed())
+  const { available: installAvailable, promptInstall } = useInstallPrompt()
 
   useEffect(
     () =>
@@ -63,6 +92,12 @@ export function Settings() {
             Got it
           </button>
         </div>
+      )}
+
+      {installAvailable && (
+        <button type="button" className="btn-toggle" onClick={() => void promptInstall()}>
+          Install Lapso
+        </button>
       )}
 
       <DefaultGoalSection settings={settings} updateSettings={updateSettings} />
