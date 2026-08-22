@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
+  clampGoalHours,
   derive,
+  DOCTOR_NOTE_THRESHOLD_HOURS,
   formatDuration,
   formatElapsedClock,
   formatShortDuration,
   hourGoalLabel,
   HOUR_MS,
+  MAX_GOAL_HOURS,
   pluralHours,
 } from '../core/clock'
 import { resolveTheme, snapProgressStep, surfaceColor } from '../core/color'
@@ -28,8 +31,6 @@ import type { ActiveFast, CompletedFast, Phase, Settings } from '../core/types'
 import { Ring } from './Ring'
 import type { RingHandle } from './Ring'
 
-const MAX_GOAL_HOURS = 48
-const DOCTOR_NOTE_THRESHOLD_HOURS = 24
 const START_TIME_WINDOW_MS = 48 * HOUR_MS
 const UNDO_WINDOW_MS = 5000
 const MILESTONE_TOAST_MS = 6000
@@ -37,11 +38,6 @@ const NOTIFICATION_TITLE = 'Lapso'
 
 function clampStartedAt(ms: number, now: number): number {
   return Math.min(now, Math.max(now - START_TIME_WINDOW_MS, ms))
-}
-
-function clampGoalHours(hours: number): number {
-  if (!Number.isFinite(hours) || hours <= 0) return 1
-  return Math.min(MAX_GOAL_HOURS, hours)
 }
 
 function useMediaQueryMatches(query: string): boolean {
@@ -100,10 +96,6 @@ export function Timer() {
       }),
     [],
   )
-
-  useEffect(() => {
-    document.documentElement.dataset.theme = settings.theme
-  }, [settings.theme])
 
   useEffect(() => {
     if (!active) {
@@ -194,9 +186,11 @@ export function Timer() {
       if (d.dueMilestones.length > 0) {
         for (const key of d.dueMilestones) sessionFired.add(key)
         saveActive({ ...active, firedMilestones: [...sessionFired] })
-        for (const key of d.dueMilestones) {
-          const copy = milestoneCopy({ key, goalHours: active.goalHours, goalMs: d.goalMs, elapsedMs: d.elapsedMs })
-          void showMilestoneNotification(NOTIFICATION_TITLE, copy)
+        if (settings.notificationsEnabled) {
+          for (const key of d.dueMilestones) {
+            const copy = milestoneCopy({ key, goalHours: active.goalHours, goalMs: d.goalMs, elapsedMs: d.elapsedMs })
+            void showMilestoneNotification(NOTIFICATION_TITLE, copy)
+          }
         }
         const headline = headlineMilestone(d.dueMilestones)
         if (headline) {
@@ -245,7 +239,7 @@ export function Timer() {
       document.body.style.backgroundColor = ''
       document.body.classList.remove('swelling')
     }
-  }, [active, settings.milestonePercents, theme, reduceMotion])
+  }, [active, settings.milestonePercents, settings.notificationsEnabled, theme, reduceMotion])
 
   const handleEndFast = useCallback(() => {
     endFast(Date.now())

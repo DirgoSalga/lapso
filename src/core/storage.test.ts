@@ -3,14 +3,18 @@ import {
   CURRENT_SCHEMA_VERSION,
   defaultSettings,
   deleteAll,
+  dismissEvictionNotice,
   endFast,
   exportJson,
   getLastSeenNow,
   hasClockRolledBack,
+  importHistoryOnly,
   importJson,
+  isEvictionNoticeDismissed,
   loadActive,
   loadHistory,
   loadSettings,
+  previewImport,
   recordLastSeenNow,
   saveSettings,
   startFast,
@@ -42,6 +46,30 @@ describe('fast lifecycle', () => {
     expect(active.goalHours).toBe(16)
     expect(active.firedMilestones).toEqual([])
     expect(loadActive()).toEqual(active)
+  })
+
+  it('still generates an id when crypto.randomUUID is unavailable (insecure-context LAN access)', () => {
+    const original = crypto.randomUUID
+    // @ts-expect-error -- simulating a non-secure context, where this is undefined
+    crypto.randomUUID = undefined
+    try {
+      const active = startFast(NOW, 16)
+      expect(active.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
+    } finally {
+      crypto.randomUUID = original
+    }
+  })
+
+  it('still generates an id when crypto is entirely unavailable', () => {
+    const original = globalThis.crypto
+    // @ts-expect-error -- simulating an environment with no Web Crypto API at all
+    delete globalThis.crypto
+    try {
+      const active = startFast(NOW, 16)
+      expect(active.id.length).toBeGreaterThan(0)
+    } finally {
+      globalThis.crypto = original
+    }
   })
 
   it('ends a fast: clears active and appends to history', () => {
@@ -252,5 +280,66 @@ describe('clock rollback detection (spec §10)', () => {
     recordLastSeenNow(NOW)
     expect(hasClockRolledBack(NOW - 61_000)).toBe(true)
     expect(getLastSeenNow()).toBe(NOW)
+  })
+})
+
+describe('previewImport()', () => {
+  it('summarizes a valid dump without writing anything', () => {
+    startFast(NOW - 2 * H, 16)
+    endFast(NOW)
+    const dump = exportJson()
+    localStorage.clear()
+
+    const result = previewImport(dump)
+    expect(result).toEqual({
+      ok: true,
+      preview: { schemaVersion: 1, fastsCount: 1, sizeBytes: expect.any(Number), supported: true, hasActive: false },
+    })
+    expect(loadHistory()).toEqual([]) // preview must not commit
+  })
+
+  it('flags an unsupported (newer) schema version', () => {
+    const dump = JSON.stringify({ schemaVersion: CURRENT_SCHEMA_VERSION + 1, active: null, history: [], settings: {} })
+    const result = previewImport(dump)
+    expect(result.ok && result.preview.supported).toBe(false)
+  })
+
+  it('rejects invalid JSON without throwing', () => {
+    expect(previewImport('{not json')).toEqual({ ok: false, reason: 'invalid-json' })
+  })
+})
+
+describe('importHistoryOnly() (the fallback when a full import is refused)', () => {
+  it('imports just the history array regardless of schemaVersion', () => {
+    startFast(NOW - 20 * H, 16)
+    endFast(NOW)
+    const dump = JSON.parse(exportJson())
+    dump.schemaVersion = CURRENT_SCHEMA_VERSION + 1 // would be refused by importJson()
+    localStorage.clear()
+
+    expect(importJson(JSON.stringify(dump))).toEqual({ ok: false, reason: 'unsupported-schema-version' })
+    expect(importHistoryOnly(JSON.stringify(dump))).toEqual({ ok: true })
+    expect(loadHistory()).toHaveLength(1)
+    expect(loadActive()).toBeNull() // only history is touched
+  })
+
+  it('rejects a malformed history array', () => {
+    expect(importHistoryOnly(JSON.stringify({ history: 'nope' }))).toEqual({ ok: false, reason: 'invalid-history' })
+  })
+})
+
+describe('eviction notice dismissal', () => {
+  it('is not dismissed by default, and stays dismissed once set', () => {
+    expect(isEvictionNoticeDismissed()).toBe(false)
+    dismissEvictionNotice()
+    expect(isEvictionNoticeDismissed()).toBe(true)
+  })
+
+  it('notifies subscribers on dismissal', () => {
+    const listener = vi.fn()
+    const unsubscribe = subscribe(listener)
+    dismissEvictionNotice()
+    expect(listener).toHaveBeenCalledTimes(1)
+    unsubscribe()
   })
 })

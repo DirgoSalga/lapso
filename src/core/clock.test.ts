@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  clampGoalHours,
   derive,
   formatDuration,
   formatElapsedClock,
@@ -264,5 +265,24 @@ describe('formatShortDuration()', () => {
   it('drops seconds and clamps negative durations to zero', () => {
     expect(formatShortDuration(45 * 60_000 + 59_000)).toBe('0h45')
     expect(formatShortDuration(-5000)).toBe('0h00')
+  })
+})
+
+describe('clampGoalHours() (spec §9.7)', () => {
+  it('accepts 48 and rejects anything above it', () => {
+    expect(clampGoalHours(48)).toBe(48)
+    expect(clampGoalHours(49)).toBe(48)
+    expect(clampGoalHours(1000)).toBe(48)
+  })
+
+  it('floors non-positive or non-finite input to 1', () => {
+    expect(clampGoalHours(0)).toBe(1)
+    expect(clampGoalHours(-5)).toBe(1)
+    expect(clampGoalHours(Number.NaN)).toBe(1)
+  })
+
+  it('passes through any in-range value unchanged', () => {
+    expect(clampGoalHours(16)).toBe(16)
+    expect(clampGoalHours(0.5)).toBe(0.5)
   })
 })

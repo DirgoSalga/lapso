@@ -227,9 +227,29 @@ export function saveSettings(settings: Settings): void {
 
 // --- fast lifecycle ---
 
+// crypto.randomUUID() only exists in secure contexts (HTTPS, or localhost) --
+// it's undefined over a plain-HTTP LAN address, which is a real deployment
+// shape for a self-hosted PWA, not just an edge case. Fall back rather than
+// let starting a fast throw.
+function generateId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+  if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+    const bytes = crypto.getRandomValues(new Uint8Array(16))
+    bytes[6] = ((bytes[6] ?? 0) & 0x0f) | 0x40
+    bytes[8] = ((bytes[8] ?? 0) & 0x3f) | 0x80
+    const hex = [...bytes].map((b) => b.toString(16).padStart(2, '0')).join('')
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+  }
+  // Last resort: not cryptographically random, but only needs to be unique
+  // enough to tell one locally-stored fast apart from another.
+  return `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
+}
+
 export function startFast(startedAt: number, goalHours: number): ActiveFast {
   const active: ActiveFast = {
-    id: crypto.randomUUID(),
+    id: generateId(),
     startedAt,
     goalHours,
     firedMilestones: [],
@@ -313,6 +333,84 @@ export function importJson(json: string): ImportResult {
   saveHistory(o.history)
   saveSettings(migrateSettings(o.settings))
   return { ok: true }
+}
+
+// The data-loss backstop's fallback when the full import is refused: the
+// history array's shape is far less likely to have changed across schema
+// versions than Settings, so a future export can still hand back the fast
+// log even when this build doesn't understand its schemaVersion.
+export function importHistoryOnly(json: string): ImportResult {
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(json)
+  } catch {
+    return { ok: false, reason: 'invalid-json' }
+  }
+  if (typeof parsed !== 'object' || parsed === null) {
+    return { ok: false, reason: 'invalid-shape' }
+  }
+  const o = parsed as Record<string, unknown>
+  if (!isCompletedFastArray(o.history)) {
+    return { ok: false, reason: 'invalid-history' }
+  }
+  saveHistory(o.history)
+  return { ok: true }
+}
+
+export interface ImportPreview {
+  schemaVersion: number
+  fastsCount: number
+  sizeBytes: number
+  supported: boolean
+  hasActive: boolean
+}
+
+// A read-only look at a dump before committing it (spec's Settings note:
+// "58 fasts, 12.4 MB of history, schema v1 -- replace?").
+export function previewImport(json: string): { ok: true; preview: ImportPreview } | { ok: false; reason: string } {
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(json)
+  } catch {
+    return { ok: false, reason: 'invalid-json' }
+  }
+  if (typeof parsed !== 'object' || parsed === null) {
+    return { ok: false, reason: 'invalid-shape' }
+  }
+  const o = parsed as Record<string, unknown>
+  const schemaVersion = typeof o.schemaVersion === 'number' ? o.schemaVersion : 1
+  return {
+    ok: true,
+    preview: {
+      schemaVersion,
+      fastsCount: Array.isArray(o.history) ? o.history.length : 0,
+      sizeBytes: new TextEncoder().encode(json).length,
+      supported: schemaVersion <= CURRENT_SCHEMA_VERSION,
+      hasActive: o.active !== null && o.active !== undefined,
+    },
+  }
+}
+
+// --- one-time dismissible notes (UI preference, not part of the versioned
+// Settings schema) ---
+
+const EVICTION_NOTICE_KEY = 'fast.noticeDismissed.eviction'
+
+export function isEvictionNoticeDismissed(): boolean {
+  try {
+    return localStorage.getItem(EVICTION_NOTICE_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+export function dismissEvictionNotice(): void {
+  try {
+    localStorage.setItem(EVICTION_NOTICE_KEY, '1')
+  } catch {
+    // best effort
+  }
+  notify()
 }
 
 // --- system clock change detection (spec §10) ---

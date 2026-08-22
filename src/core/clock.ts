@@ -6,6 +6,18 @@ export const INTENSITY_CAP_HOURS = 2
 export const ABSURD_HOURS = 168
 export const ABSURD_MS = ABSURD_HOURS * HOUR_MS
 
+// spec §9.7: cap goal input at 48h in the UI; above 24h, a plain one-time
+// note suggesting the user discuss extended fasting with a doctor. Shared
+// by every screen that lets the user set a goal (Timer's idle start,
+// Settings' default goal), so the guardrail can't drift between them.
+export const MAX_GOAL_HOURS = 48
+export const DOCTOR_NOTE_THRESHOLD_HOURS = 24
+
+export function clampGoalHours(hours: number): number {
+  if (!Number.isFinite(hours) || hours <= 0) return 1
+  return Math.min(MAX_GOAL_HOURS, hours)
+}
+
 export interface FastInput {
   startedAt: number
   goalHours: number
