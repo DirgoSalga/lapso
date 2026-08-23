@@ -61,6 +61,7 @@ function useMediaQueryMatches(query: string): boolean {
 
 interface ReadoutState {
   display: string
+  remainingDisplay: string
   phase: Phase
   absurd: boolean
   clockRolledBack: boolean
@@ -78,6 +79,11 @@ export function Timer() {
   const [history, setHistory] = useState<CompletedFast[]>(() => loadHistory())
   const ringRef = useRef<RingHandle>(null)
   const [readout, setReadout] = useState<ReadoutState | null>(null)
+  // Tap-to-toggle the big readout between elapsed and remaining time
+  // (feature request #2, ISSUES.md). Not persisted -- resets to elapsed
+  // whenever a fast starts or ends, so it never surprises the next session.
+  const [showRemaining, setShowRemaining] = useState(false)
+  useEffect(() => setShowRemaining(false), [active?.id])
   const [milestoneToast, setMilestoneToast] = useState<MilestoneNotice | null>(null)
   const [catchUpCard, setCatchUpCard] = useState<MilestoneNotice | null>(null)
   const milestoneToastTimeoutRef = useRef<number | undefined>(undefined)
@@ -212,6 +218,7 @@ export function Timer() {
       })
       setReadout({
         display: formatElapsedClock(d.elapsedMs),
+        remainingDisplay: formatElapsedClock(Math.max(0, d.goalMs - d.elapsedMs)),
         phase: d.phase,
         absurd: d.absurd,
         clockRolledBack: rolledBack,
@@ -307,9 +314,18 @@ export function Timer() {
           <div className="timer-ring-wrap">
             <Ring ref={ringRef} milestonePercents={settings.milestonePercents} />
             <div className="readout">
-              <div className="readout-time">
-                <TabularTime value={readout?.display ?? '00:00:00'} />
-              </div>
+              <button
+                type="button"
+                className="readout-time"
+                onClick={() => setShowRemaining((v) => !v)}
+                aria-label={
+                  showRemaining
+                    ? 'Showing time remaining. Tap to show elapsed time.'
+                    : 'Showing elapsed time. Tap to show time remaining.'
+                }
+              >
+                <TabularTime value={(showRemaining ? readout?.remainingDisplay : readout?.display) ?? '00:00:00'} />
+              </button>
               <div className="readout-goal">goal {pluralHours(active.goalHours)}</div>
             </div>
           </div>

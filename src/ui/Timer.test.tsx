@@ -115,6 +115,45 @@ describe('<Timer> active fast', () => {
     }
   })
 
+  it('tapping the readout toggles it between elapsed and remaining time, and back (feature: remaining time)', () => {
+    vi.useFakeTimers()
+    try {
+      vi.setSystemTime(new Date('2026-01-01T08:00:00'))
+      startFast(Date.now() - 2 * HOUR_MS, 16)
+      const { container } = render(<Timer />)
+
+      expect(container.querySelector('.readout-time')?.textContent).toBe('02:00:00')
+
+      fireEvent.click(screen.getByRole('button', { name: 'Showing elapsed time. Tap to show time remaining.' }))
+      expect(container.querySelector('.readout-time')?.textContent).toBe('14:00:00')
+
+      fireEvent.click(screen.getByRole('button', { name: 'Showing time remaining. Tap to show elapsed time.' }))
+      expect(container.querySelector('.readout-time')?.textContent).toBe('02:00:00')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('resets the readout to elapsed time when a new fast starts', () => {
+    vi.useFakeTimers()
+    try {
+      vi.setSystemTime(new Date('2026-01-01T08:00:00'))
+      startFast(Date.now() - 2 * HOUR_MS, 16)
+      const { container } = render(<Timer />)
+
+      fireEvent.click(screen.getByRole('button', { name: 'Showing elapsed time. Tap to show time remaining.' }))
+      expect(container.querySelector('.readout-time')?.textContent).toBe('14:00:00')
+
+      fireEvent.click(screen.getByRole('button', { name: 'End fast' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Start fast' }))
+
+      expect(container.querySelector('.readout-time')?.textContent).toBe('00:00:00')
+      expect(screen.getByRole('button', { name: 'Showing elapsed time. Tap to show time remaining.' })).toBeTruthy()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('reflects another tab ending the fast without a reload (spec §14 two tabs)', () => {
     startFast(Date.now() - HOUR_MS, 16)
     render(<Timer />)

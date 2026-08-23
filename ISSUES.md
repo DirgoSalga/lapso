@@ -45,11 +45,12 @@ Show the clock time the fast will complete (i.e. `startedAt`/entry time + goal d
 
 ### 2. Tap elapsed time to toggle to remaining time
 
-**Status:** open
+**Status:** in progress — branch `feature/tap-remaining-time`
 **Requested by:** Diego, 2026-08-23
 
 During an active fast, tapping/clicking the big timer readout (currently elapsed time, e.g. `14:22:07`) toggles it to show remaining time until goal instead (and back on a second tap).
 
 - Applies to the main timer numerals inside the ring (`SPEC.md` §5.4 layout, §5.5 ring).
-- Consider whether the toggle state should persist across reloads/sessions or always reset to "elapsed" — open question, not yet decided.
-- Should not affect the ring's progress arc or overtime ring, only the numeral readout.
+- Consider whether the toggle state should persist across reloads/sessions or always reset to "elapsed" — decided: does not persist. Resets to elapsed whenever a fast starts or ends (in-memory React state only, nothing written to storage).
+- Does not affect the ring's progress arc or overtime ring, only the numeral readout.
+- Implemented: `.readout-time` is now a real `<button>` (was a `<div>`) for tap/click + keyboard access, with an `aria-label` announcing which mode is showing. Remaining time is `max(0, goalMs - elapsedMs)`, clamped at zero past goal (same clamp `formatElapsedClock`/`formatDuration` already use elsewhere).
