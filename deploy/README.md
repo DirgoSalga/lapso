@@ -1,18 +1,23 @@
 # Deployment
 
-Lapso is self-hosted at https://lapso.cloud.dirgosalga.com, served by
-`nginx:alpine` behind the existing Traefik reverse proxy on
-`ds-hetz-bird-01`. There is no server-side logic and no build step runs
-on the host — this is a static export, built locally and synced over.
+Lapso is self-hosted at https://lapso.cloud.dirgosalga.com, served by a
+single Docker image (`Dockerfile` at the repo root, built via
+`.github/workflows/docker-publish.yml` and published to GitHub Container
+Registry) behind the existing Traefik reverse proxy on `ds-hetz-bird-01`.
+The image is the app *and* the web server together — no build step and no
+app code on the host, just `docker compose pull`.
 
 ## Layout on the host
 
 ```
 /home/ava/lapso/
   docker-compose.yml   # this directory's copy
-  nginx.conf           # this directory's copy
-  dist/                # synced build output (not version controlled there)
 ```
+
+`nginx.conf` no longer lives on the host — it's baked into the image at
+build time (`Dockerfile` copies `deploy/nginx.conf` in). Changing routing/
+caching rules means editing `deploy/nginx.conf` in the repo and letting the
+next image build pick it up, not editing anything on the host.
 
 The `lapso` container joins the `proxy` docker network that Traefik
 already watches (`exposedByDefault: false`, so only labeled containers
@@ -20,28 +25,41 @@ are routed). Traefik issues its own Let's Encrypt cert for the host via
 the `namecheap` DNS-01 resolver already configured for this Traefik
 instance — no cert config needed here beyond the router labels.
 
+## Publishing a new image
+
+Pushing to `main` (or pushing a `vX.Y.Z` tag, or running the workflow
+manually) builds the image and pushes it to
+`ghcr.io/dirgosalga/lapso` with tags:
+
+- `latest` — every push to `main`
+- `X.Y.Z` — only when a matching `vX.Y.Z` git tag is pushed
+- `sha-<short-sha>` — every build, for pinning/rollback
+
+**One-time setup:** the first successful workflow run creates the GHCR
+package as **private** by default. Go to the package's settings on GitHub
+(`github.com/DirgoSalga/lapso` → Packages → `lapso` → Package settings) and
+change visibility to **public** — the app has no secrets and this avoids
+needing registry auth on the host. If it's kept private instead, the host
+needs `docker login ghcr.io` with a PAT that has `read:packages`.
+
 ## Redeploying after a change
 
 ```bash
-npm run build
-rsync -az --delete dist/ ava@ds-hetz-bird-01:/home/ava/lapso/dist/
+ssh ds-hetz-bird-01
+cd /home/ava/lapso
+docker compose pull
+docker compose up -d
 ```
 
-That's it — nginx serves the new files immediately, no restart needed.
-If `docker-compose.yml` or `nginx.conf` change, also copy those up and
-run `docker compose up -d` again on the host.
-
-## Gotcha: file permissions
-
-Files created by some editors/tools land as `0600` (owner-only) locally.
-Vite's `public/` copy step preserves source file permissions verbatim
-into `dist/`, and nginx runs as a non-owner user inside the container --
-an unreadable file there is a silent `403`, not a build error. If a
-freshly built asset 404s/403s in production but works locally, check:
+That's it — no rsync, no local build. If `docker-compose.yml` changes
+(e.g. pinning a specific tag instead of `latest`), copy it up first:
 
 ```bash
-find dist -not -perm -044
+scp deploy/docker-compose.yml ds-hetz-bird-01:/home/ava/lapso/docker-compose.yml
 ```
 
-A normal `git clone` will not reproduce this (git doesn't store full
-permission bits), so it's only ever a local-working-tree issue.
+## Rolling back
+
+Pull an older `sha-<short-sha>` or `X.Y.Z` tag instead of `latest`: edit
+`image:` in `docker-compose.yml` on the host to that tag, then
+`docker compose pull && docker compose up -d`.
