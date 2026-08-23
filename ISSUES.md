@@ -33,7 +33,7 @@ Package the app and the web server together as a single Docker image, built and 
 
 ### 1. Show projected completion time
 
-**Status:** in progress — branch `feature/completion-time`, targeting `v0.2.0`
+**Status:** done — merged to `main` in `v0.2.0` (`feature/completion-time`)
 **Requested by:** Diego, 2026-08-23
 
 Show the clock time the fast will complete (i.e. `startedAt`/entry time + goal duration), not just the elapsed duration.
