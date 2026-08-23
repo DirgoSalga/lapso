@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   clampGoalHours,
+  completesAt,
   derive,
   DOCTOR_NOTE_THRESHOLD_HOURS,
   formatDuration,
@@ -277,11 +278,14 @@ export function Timer() {
     <>
       {active ? (
         <main className="shell" data-phase={readout?.phase ?? 'fasting'}>
-          <div className="eyebrow-row">
-            <p className="eyebrow">fasting since {formatClockTime(active.startedAt)}</p>
-            <a className="eyebrow-link" href="#/settings">
-              settings
-            </a>
+          <div className="eyebrow-block">
+            <div className="eyebrow-row">
+              <p className="eyebrow">fasting since {formatClockTime(active.startedAt)}</p>
+              <a className="eyebrow-link" href="#/settings">
+                settings
+              </a>
+            </div>
+            <p className="eyebrow eyebrow-sub">done {formatClockTime(completesAt(active.startedAt, active.goalHours))}</p>
           </div>
 
           {catchUpCard && (
@@ -362,6 +366,7 @@ function IdleStart({ defaultGoalHours, onStart, history }: IdleStartProps) {
   const minStart = toDatetimeLocalValue(now - START_TIME_WINDOW_MS)
   const maxStart = toDatetimeLocalValue(now)
   const startedAtValue = startedAtOverride ?? maxStart
+  const previewCompletion = formatClockTime(completesAt(fromDatetimeLocalValue(startedAtValue), goalHours))
 
   const handleStart = () => {
     const requestedNow = Date.now()
@@ -408,6 +413,8 @@ function IdleStart({ defaultGoalHours, onStart, history }: IdleStartProps) {
             onChange={(e) => setStartedAtOverride(e.target.value)}
           />
         </label>
+
+        <p className="note">Done around {previewCompletion}</p>
 
         <button type="button" className="btn btn-primary" onClick={handleStart}>
           Start fast

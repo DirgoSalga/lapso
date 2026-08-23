@@ -21,6 +21,21 @@ describe('<Timer> idle state', () => {
     expect((screen.getByRole('spinbutton') as HTMLInputElement).value).toBe('18')
   })
 
+  it('shows the projected completion time, live as the goal changes (feature: completion time)', () => {
+    vi.useFakeTimers()
+    try {
+      vi.setSystemTime(new Date('2026-01-01T08:00:00'))
+      saveSettings({ ...defaultSettings(), defaultGoalHours: 16 })
+      render(<Timer />)
+      expect(screen.getByText('Done around 00:00')).toBeTruthy()
+
+      fireEvent.change(screen.getByRole('spinbutton'), { target: { value: '18' } })
+      expect(screen.getByText('Done around 02:00')).toBeTruthy()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('starting a fast shows a 5s undo toast that removes it without a history entry', () => {
     vi.useFakeTimers()
     try {
@@ -84,6 +99,20 @@ describe('<Timer> active fast', () => {
     // Digits render as individual fixed-width spans (spec §5.3 tnum
     // fallback), so the digital-clock string is fragmented across nodes.
     expect(container.querySelector('.readout-time')?.textContent).toBe('00:00:30')
+  })
+
+  it('shows the projected completion time next to "fasting since" (feature: completion time)', () => {
+    vi.useFakeTimers()
+    try {
+      vi.setSystemTime(new Date('2026-01-01T08:00:00'))
+      startFast(Date.now(), 16)
+      render(<Timer />)
+
+      expect(screen.getByText(/fasting since 08:00/)).toBeTruthy()
+      expect(screen.getByText(/done 00:00/)).toBeTruthy()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('reflects another tab ending the fast without a reload (spec §14 two tabs)', () => {
