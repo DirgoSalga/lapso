@@ -278,14 +278,14 @@ export function Timer() {
     <>
       {active ? (
         <main className="shell" data-phase={readout?.phase ?? 'fasting'}>
-          <div className="eyebrow-row">
-            <p className="eyebrow">
-              fasting since {formatClockTime(active.startedAt)} &middot; done{' '}
-              {formatClockTime(completesAt(active.startedAt, active.goalHours))}
-            </p>
-            <a className="eyebrow-link" href="#/settings">
-              settings
-            </a>
+          <div className="eyebrow-block">
+            <div className="eyebrow-row">
+              <p className="eyebrow">fasting since {formatClockTime(active.startedAt)}</p>
+              <a className="eyebrow-link" href="#/settings">
+                settings
+              </a>
+            </div>
+            <p className="eyebrow eyebrow-sub">done {formatClockTime(completesAt(active.startedAt, active.goalHours))}</p>
           </div>
 
           {catchUpCard && (

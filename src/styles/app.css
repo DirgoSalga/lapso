@@ -289,6 +289,14 @@ body {
   cursor: pointer;
 }
 
+.eyebrow-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  max-width: 320px;
+}
+
 .eyebrow-row {
   display: flex;
   align-items: baseline;
@@ -296,6 +304,10 @@ body {
   gap: 12px;
   width: 100%;
   max-width: 320px;
+}
+
+.eyebrow-sub {
+  opacity: 0.8;
 }
 
 .eyebrow-link {
