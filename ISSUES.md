@@ -45,7 +45,7 @@ Show the clock time the fast will complete (i.e. `startedAt`/entry time + goal d
 
 ### 2. Tap elapsed time to toggle to remaining time
 
-**Status:** in progress — branch `feature/tap-remaining-time`
+**Status:** done — merged to `main` in `v0.3.0` (`feature/tap-remaining-time`)
 **Requested by:** Diego, 2026-08-23
 
 During an active fast, tapping/clicking the big timer readout (currently elapsed time, e.g. `14:22:07`) toggles it to show remaining time until goal instead (and back on a second tap).
