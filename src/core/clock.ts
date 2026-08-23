@@ -18,6 +18,13 @@ export function clampGoalHours(hours: number): number {
   return Math.min(MAX_GOAL_HOURS, hours)
 }
 
+// Projected wall-clock completion, shown during duration entry and next to
+// the "fasting since" eyebrow (feature request #1, ISSUES.md). Derived, not
+// stored -- it moves whenever startedAt or goalHours does.
+export function completesAt(startedAt: number, goalHours: number): number {
+  return startedAt + goalHours * HOUR_MS
+}
+
 export interface FastInput {
   startedAt: number
   goalHours: number

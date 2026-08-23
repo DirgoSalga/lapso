@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   clampGoalHours,
+  completesAt,
   derive,
   formatDuration,
   formatElapsedClock,
@@ -24,6 +25,17 @@ function input(overrides: Partial<FastInput> = {}): FastInput {
     ...overrides,
   }
 }
+
+describe('completesAt()', () => {
+  it('adds the goal duration to the start time', () => {
+    expect(completesAt(NOW, 16)).toBe(NOW + 16 * H)
+  })
+
+  it('moves when either the start time or the goal changes', () => {
+    expect(completesAt(NOW - H, 16)).toBe(NOW + 15 * H)
+    expect(completesAt(NOW, 20)).toBe(NOW + 20 * H)
+  })
+})
 
 describe('derive(): phase boundaries', () => {
   it('is fasting before the goal', () => {
