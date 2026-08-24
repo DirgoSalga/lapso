@@ -214,6 +214,43 @@ describe('<Timer> goal swell (spec §5.6)', () => {
       vi.useRealTimers()
     }
   })
+
+  it('shows confetti on the fasting->overtime crossing, then clears it a few seconds later (feature: goal confetti)', () => {
+    vi.useFakeTimers()
+    try {
+      startFast(Date.now() - (16 * HOUR_MS - 500), 16)
+      const { container } = render(<Timer />)
+      expect(container.querySelector('.confetti')).toBeNull()
+
+      act(() => {
+        vi.advanceTimersByTime(1500) // crosses the goal within a couple of frames
+      })
+      expect(container.querySelector('.confetti')).toBeTruthy()
+
+      act(() => {
+        vi.advanceTimersByTime(3000)
+      })
+      expect(container.querySelector('.confetti')).toBeNull()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('skips confetti entirely when settings.reduceMotion is "always"', () => {
+    vi.useFakeTimers()
+    try {
+      saveSettings({ ...defaultSettings(), reduceMotion: 'always' })
+      startFast(Date.now() - (16 * HOUR_MS - 500), 16)
+      const { container } = render(<Timer />)
+
+      act(() => {
+        vi.advanceTimersByTime(1500)
+      })
+      expect(container.querySelector('.confetti')).toBeNull()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
 })
 
 describe('<Timer> milestones (spec §6)', () => {

@@ -58,3 +58,14 @@ During an active fast, tapping/clicking the big timer readout (currently elapsed
 - Consider whether the toggle state should persist across reloads/sessions or always reset to "elapsed" — decided: does not persist. Resets to elapsed whenever a fast starts or ends (in-memory React state only, nothing written to storage).
 - Does not affect the ring's progress arc or overtime ring, only the numeral readout.
 - Implemented: `.readout-time` is now a real `<button>` (was a `<div>`) for tap/click + keyboard access, with an `aria-label` announcing which mode is showing. Remaining time is `max(0, goalMs - elapsedMs)`, clamped at zero past goal (same clamp `formatElapsedClock`/`formatDuration` already use elsewhere).
+
+### 3. Confetti when the goal is reached
+
+**Status:** in progress — branch `feature/goal-confetti`
+**Requested by:** Diego, 2026-08-24
+
+When a fast crosses its goal, show small colourful confetti falling over the background, to symbolize and celebrate the success.
+
+- Fires once on the same live fasting→overtime crossing that already triggers the ring's goal swell/vibrate (`Timer.tsx`'s `previousPhase === 'fasting' && d.phase === 'overtime'` check) — not on the catch-up path (goal already passed before this mount), matching existing swell/vibrate behaviour.
+- Respects the app's existing reduced-motion gate (`settings.reduceMotion === 'always'` or OS `prefers-reduced-motion`) — skipped entirely under reduced motion, same as the swell.
+- Brief and non-interactive: a few seconds, `pointer-events: none`, `aria-hidden`, CSS-animation driven (no canvas, no per-frame JS loop) to keep it cheap.
