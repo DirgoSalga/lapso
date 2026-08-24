@@ -10,7 +10,7 @@ Status legend: `open` (not started) · `in progress` · `done`
 
 ### A. Self-contained Docker image, published via GitHub → pull-to-deploy
 
-**Status:** open
+**Status:** in progress — branch `feature/docker-publish`, targeting `v1.0.0` (release bump, not a feature bump — see `README.md` Versioning)
 **Requested by:** Diego, 2026-08-23
 
 Package the app and the web server together as a single Docker image, built and published from GitHub, so redeploying is `docker compose pull && docker compose up -d` on the host instead of the current local-build-and-`rsync` flow (see `deploy/README.md`). Also sets up a natural place to later attach a database/backend service alongside the app container.
@@ -19,13 +19,18 @@ Package the app and the web server together as a single Docker image, built and 
 
 **Sub-tasks:**
 
-- [ ] Push this repo to a GitHub remote (none configured locally yet).
-- [ ] Write a multi-stage `Dockerfile`: a Node build stage (`npm ci && npm run build`) producing `dist/`, then a runtime stage (`nginx:alpine` or similar) that `COPY`s `dist/` in and bakes in `deploy/nginx.conf` — no host bind-mounts for app content.
-- [ ] GitHub Actions workflow: build the image on push to `main`/on tag, push to GitHub Container Registry (`ghcr.io/<owner>/lapso`). Decide tagging scheme (`:latest`, semver, and/or git-sha) and whether a rollback just means pulling an older tag.
-- [ ] Decide image visibility (public vs. private on GHCR) and registry auth on the host (`docker login ghcr.io` with a PAT, or public image needing no auth).
-- [ ] Update `deploy/docker-compose.yml` to reference `ghcr.io/<owner>/lapso:<tag>` instead of `nginx:alpine` + volume mounts; keep the existing Traefik labels as-is.
-- [ ] Update `deploy/README.md` to replace the `npm run build` + `rsync` redeploy steps with `docker compose pull && docker compose up -d`.
-- [ ] Out of scope for now, but keep the door open: no database/backend service yet — just don't design the image/compose file in a way that would block bolting one on later (e.g. a second service in the same `docker-compose.yml`, sharing the `proxy` network).
+- [x] Push this repo to a GitHub remote — done earlier this session (`git@github.com:DirgoSalga/lapso.git`).
+- [x] Write a multi-stage `Dockerfile`: `node:22-alpine` build stage (`npm ci && npm run build`), `nginx:alpine` runtime stage that `COPY`s `dist/` and `deploy/nginx.conf` in — no host bind-mounts for app content. Added `.dockerignore` alongside it.
+- [x] GitHub Actions workflow (`.github/workflows/docker-publish.yml`): builds on push to `main`, on `vX.Y.Z` tags, and manually (`workflow_dispatch`); pushes to `ghcr.io/dirgosalga/lapso` tagged `latest` (on `main`), `X.Y.Z` (on a matching git tag), and `sha-<short-sha>` (always, for rollback).
+- [x] Decided: GHCR package made **public** (no secrets in a static fasting timer, avoids needing a PAT on the host). **Manual one-time step still needed:** the first workflow run creates the package as private by default — flip it to public in the GitHub package settings (documented in `deploy/README.md`); no `gh` CLI available in this session to do it automatically.
+- [x] Updated `deploy/docker-compose.yml` to `image: ghcr.io/dirgosalga/lapso:latest`, dropped the `volumes:` bind mounts; Traefik labels untouched.
+- [x] Rewrote `deploy/README.md`: new layout (no `nginx.conf` on the host anymore), publish/tagging docs, `docker compose pull && docker compose up -d` redeploy steps, and a rollback recipe (pin an older `sha-`/`X.Y.Z` tag).
+- [x] Out of scope for now, kept the door open: no database/backend service added; `docker-compose.yml` still supports adding a second service on the same `proxy` network later without restructuring.
+
+**Not yet done / needs the user or a real GitHub Actions run:**
+- The workflow itself has not run yet (needs a push to `main` on GitHub) — the `Dockerfile` has not been build-tested anywhere; no local Docker daemon was available in this session to test-build it.
+- The manual "make the GHCR package public" step above.
+- The host (`ds-hetz-bird-01`) still runs the old bind-mounted `nginx:alpine` container from `deploy/docker-compose.yml` — switching it over means copying the new compose file up and running `docker compose pull && docker compose up -d` there (see `deploy/README.md`).
 
 ---
 
