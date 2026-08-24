@@ -141,12 +141,13 @@ body {
   .confetti-piece {
     animation-name: confetti-fall;
     animation-timing-function: ease-in;
-    animation-fill-mode: forwards;
+    animation-iteration-count: infinite;
   }
 }
 
-/* Celebrates crossing the goal (feature request #3, ISSUES.md). Timer.tsx
-   mounts .confetti only briefly and only when motion isn't reduced -- the
+/* Celebrates crossing the goal, falling for the whole overtime phase
+   (feature request #3, ISSUES.md). Timer.tsx mounts .confetti only while
+   the fast is in overtime and only when motion isn't reduced -- the
    keyframe itself lives inside the reduced-motion media query above as a
    second, belt-and-braces gate. */
 .confetti {

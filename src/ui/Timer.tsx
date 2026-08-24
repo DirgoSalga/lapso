@@ -36,7 +36,6 @@ import type { RingHandle } from './Ring'
 const START_TIME_WINDOW_MS = 48 * HOUR_MS
 const UNDO_WINDOW_MS = 5000
 const MILESTONE_TOAST_MS = 6000
-const CONFETTI_DURATION_MS = 3000
 const NOTIFICATION_TITLE = 'Lapso'
 
 function clampStartedAt(ms: number, now: number): number {
@@ -90,11 +89,6 @@ export function Timer() {
   const [catchUpCard, setCatchUpCard] = useState<MilestoneNotice | null>(null)
   const milestoneToastTimeoutRef = useRef<number | undefined>(undefined)
   useEffect(() => () => window.clearTimeout(milestoneToastTimeoutRef.current), [])
-  // Confetti on crossing the goal (feature request #3, ISSUES.md): brief,
-  // triggered from the same fasting->overtime edge as the ring's goal swell.
-  const [celebrating, setCelebrating] = useState(false)
-  const confettiTimeoutRef = useRef<number | undefined>(undefined)
-  useEffect(() => () => window.clearTimeout(confettiTimeoutRef.current), [])
 
   const prefersDark = useMediaQueryMatches('(prefers-color-scheme: dark)')
   const prefersReducedMotion = useMediaQueryMatches('(prefers-reduced-motion: reduce)')
@@ -176,10 +170,6 @@ export function Timer() {
         document.body.classList.add('swelling')
         window.setTimeout(() => document.body.classList.remove('swelling'), 900)
         navigator.vibrate?.([40, 60, 40])
-
-        setCelebrating(true)
-        window.clearTimeout(confettiTimeoutRef.current)
-        confettiTimeoutRef.current = window.setTimeout(() => setCelebrating(false), CONFETTI_DURATION_MS)
       }
       previousPhase = d.phase
 
@@ -291,6 +281,12 @@ export function Timer() {
     setUndoVisible(false)
     saveActive(null) // removes the fast entirely: no history entry (spec §10 accidental start)
   }, [])
+
+  // Confetti (feature request #3, ISSUES.md): falls for the whole overtime
+  // phase, not a timed burst -- tied directly to phase state so it's there
+  // continuously from the goal crossing until the fast ends, including on
+  // a reload while already in overtime.
+  const celebrating = !reduceMotion && readout?.phase === 'overtime'
 
   return (
     <>

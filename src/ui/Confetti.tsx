@@ -28,8 +28,10 @@ function randomPieceStyle(): ConfettiPieceStyle {
 }
 
 // Celebrates crossing the goal (feature request #3, ISSUES.md). Timer.tsx
-// mounts this only for a few seconds on the live fasting->overtime crossing,
-// and only when motion isn't reduced -- both gates live there, not here.
+// mounts this for the whole overtime phase (falls until the fast ends) and
+// only when motion isn't reduced -- both gates live there, not here. Pieces
+// loop via CSS animation-iteration-count: infinite (see app.css), so this
+// stays cheap no matter how long overtime runs -- no per-frame JS.
 export function Confetti() {
   const pieces = useMemo(() => Array.from({ length: PIECE_COUNT }, randomPieceStyle), [])
 
