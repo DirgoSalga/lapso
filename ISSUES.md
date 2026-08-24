@@ -10,7 +10,7 @@ Status legend: `open` (not started) · `in progress` · `done`
 
 ### A. Self-contained Docker image, published via GitHub → pull-to-deploy
 
-**Status:** merged to `main` in `v1.0.0` (`feature/docker-publish`) — see "Not yet done" below, still pending a real GitHub Actions run and the host cutover
+**Status:** done — merged to `main` in `v1.0.0`, GitHub Actions run [#1](https://github.com/DirgoSalga/lapso/actions/runs/32687701170) built and published `ghcr.io/dirgosalga/lapso:latest` successfully, image confirmed publicly pullable. Only the host cutover is left — see "Not yet done" below.
 **Requested by:** Diego, 2026-08-23
 
 Package the app and the web server together as a single Docker image, built and published from GitHub, so redeploying is `docker compose pull && docker compose up -d` on the host instead of the current local-build-and-`rsync` flow (see `deploy/README.md`). Also sets up a natural place to later attach a database/backend service alongside the app container.
@@ -22,15 +22,14 @@ Package the app and the web server together as a single Docker image, built and 
 - [x] Push this repo to a GitHub remote — done earlier this session (`git@github.com:DirgoSalga/lapso.git`).
 - [x] Write a multi-stage `Dockerfile`: `node:22-alpine` build stage (`npm ci && npm run build`), `nginx:alpine` runtime stage that `COPY`s `dist/` and `deploy/nginx.conf` in — no host bind-mounts for app content. Added `.dockerignore` alongside it.
 - [x] GitHub Actions workflow (`.github/workflows/docker-publish.yml`): builds on push to `main`, on `vX.Y.Z` tags, and manually (`workflow_dispatch`); pushes to `ghcr.io/dirgosalga/lapso` tagged `latest` (on `main`), `X.Y.Z` (on a matching git tag), and `sha-<short-sha>` (always, for rollback).
-- [x] Decided: GHCR package made **public** (no secrets in a static fasting timer, avoids needing a PAT on the host). **Manual one-time step still needed:** the first workflow run creates the package as private by default — flip it to public in the GitHub package settings (documented in `deploy/README.md`); no `gh` CLI available in this session to do it automatically.
+- [x] Decided: GHCR package made **public** (no secrets in a static fasting timer, avoids needing a PAT on the host). Turned out no manual step was needed — after the first workflow run, an anonymous `ghcr.io/token` pull check confirmed `ghcr.io/dirgosalga/lapso:latest` is already publicly pullable (verified via the registry API directly, not just the GitHub UI).
 - [x] Updated `deploy/docker-compose.yml` to `image: ghcr.io/dirgosalga/lapso:latest`, dropped the `volumes:` bind mounts; Traefik labels untouched.
 - [x] Rewrote `deploy/README.md`: new layout (no `nginx.conf` on the host anymore), publish/tagging docs, `docker compose pull && docker compose up -d` redeploy steps, and a rollback recipe (pin an older `sha-`/`X.Y.Z` tag).
 - [x] Out of scope for now, kept the door open: no database/backend service added; `docker-compose.yml` still supports adding a second service on the same `proxy` network later without restructuring.
 
-**Not yet done / needs the user or a real GitHub Actions run:**
-- The workflow itself has not run yet — pushing `main` to GitHub is the next step, right after this merge. The `Dockerfile` has not been build-tested anywhere yet (local Docker daemon needs `sudo`, which needs an interactive password this session couldn't supply).
-- The manual "make the GHCR package public" step above.
+**Not yet done:**
 - The host (`ds-hetz-bird-01`) still runs the old bind-mounted `nginx:alpine` container from `deploy/docker-compose.yml` — switching it over means copying the new compose file up and running `docker compose pull && docker compose up -d` there (see `deploy/README.md`).
+- The `Dockerfile` was validated by the real GitHub Actions build, not a local build — local Docker still needs `sudo` in this environment (the `docker` group membership added mid-session doesn't apply to the running shell; needs a fresh session to pick up).
 
 ---
 
