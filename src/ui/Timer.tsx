@@ -29,6 +29,7 @@ import {
   subscribe,
 } from '../core/storage'
 import type { ActiveFast, CompletedFast, Phase, Settings } from '../core/types'
+import { Confetti } from './Confetti'
 import { Ring } from './Ring'
 import type { RingHandle } from './Ring'
 
@@ -281,10 +282,17 @@ export function Timer() {
     saveActive(null) // removes the fast entirely: no history entry (spec §10 accidental start)
   }, [])
 
+  // Confetti (feature request #3, ISSUES.md): falls for the whole overtime
+  // phase, not a timed burst -- tied directly to phase state so it's there
+  // continuously from the goal crossing until the fast ends, including on
+  // a reload while already in overtime.
+  const celebrating = !reduceMotion && readout?.phase === 'overtime'
+
   return (
     <>
       {active ? (
         <main className="shell" data-phase={readout?.phase ?? 'fasting'}>
+          {celebrating && <Confetti />}
           <div className="eyebrow-block">
             <div className="eyebrow-row">
               <p className="eyebrow">fasting since {formatClockTime(active.startedAt)}</p>

@@ -214,6 +214,53 @@ describe('<Timer> goal swell (spec §5.6)', () => {
       vi.useRealTimers()
     }
   })
+
+  it('shows confetti once the goal is crossed, keeps it falling through overtime, and clears it when the fast ends (feature: goal confetti)', () => {
+    vi.useFakeTimers()
+    try {
+      startFast(Date.now() - (16 * HOUR_MS - 500), 16)
+      const { container } = render(<Timer />)
+      expect(container.querySelector('.confetti')).toBeNull()
+
+      act(() => {
+        vi.advanceTimersByTime(1500) // crosses the goal within a couple of frames
+      })
+      expect(container.querySelector('.confetti')).toBeTruthy()
+
+      act(() => {
+        vi.advanceTimersByTime(60_000) // well into overtime -- still falling, no auto-clear
+      })
+      expect(container.querySelector('.confetti')).toBeTruthy()
+
+      fireEvent.click(screen.getByRole('button', { name: 'End fast' }))
+      expect(container.querySelector('.confetti')).toBeNull()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('shows confetti immediately on mount if the fast is already in overtime (e.g. reopened mid-overtime)', () => {
+    startFast(Date.now() - 17 * HOUR_MS, 16) // an hour past goal already
+    const { container } = render(<Timer />)
+
+    expect(container.querySelector('.confetti')).toBeTruthy()
+  })
+
+  it('skips confetti entirely when settings.reduceMotion is "always"', () => {
+    vi.useFakeTimers()
+    try {
+      saveSettings({ ...defaultSettings(), reduceMotion: 'always' })
+      startFast(Date.now() - (16 * HOUR_MS - 500), 16)
+      const { container } = render(<Timer />)
+
+      act(() => {
+        vi.advanceTimersByTime(1500)
+      })
+      expect(container.querySelector('.confetti')).toBeNull()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
 })
 
 describe('<Timer> milestones (spec §6)', () => {

@@ -58,3 +58,15 @@ During an active fast, tapping/clicking the big timer readout (currently elapsed
 - Consider whether the toggle state should persist across reloads/sessions or always reset to "elapsed" — decided: does not persist. Resets to elapsed whenever a fast starts or ends (in-memory React state only, nothing written to storage).
 - Does not affect the ring's progress arc or overtime ring, only the numeral readout.
 - Implemented: `.readout-time` is now a real `<button>` (was a `<div>`) for tap/click + keyboard access, with an `aria-label` announcing which mode is showing. Remaining time is `max(0, goalMs - elapsedMs)`, clamped at zero past goal (same clamp `formatElapsedClock`/`formatDuration` already use elsewhere).
+
+### 3. Confetti when the goal is reached
+
+**Status:** in progress — branch `feature/goal-confetti`
+**Requested by:** Diego, 2026-08-24
+
+When a fast crosses its goal, show small colourful confetti falling over the background, to symbolize and celebrate the success. Keeps falling for the whole overtime phase, not a brief burst — stops when the fast ends.
+
+- Tied directly to phase state (`readout.phase === 'overtime'` in `Timer.tsx`), not a one-off timer on the crossing edge — first attempt used a 3s `setTimeout` burst, which didn't match what was actually wanted (confirmed with Diego 2026-08-24: "keep seeing the confetti... until the fast ends"). Being phase-bound rather than edge-triggered also means it shows immediately if the app is reopened while already in overtime, not just on a live crossing.
+- The ring's goal swell/vibrate stayed a one-off pulse on the fasting→overtime edge — only confetti's lifetime changed.
+- Respects the app's existing reduced-motion gate (`settings.reduceMotion === 'always'` or OS `prefers-reduced-motion`) — skipped entirely under reduced motion, same as the swell.
+- Non-interactive (`pointer-events: none`, `aria-hidden`) and CSS-animation driven (`animation-iteration-count: infinite`, no canvas, no per-frame JS loop) so it stays cheap no matter how long overtime runs.
