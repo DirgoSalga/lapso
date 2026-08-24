@@ -10,7 +10,7 @@ Status legend: `open` (not started) · `in progress` · `done`
 
 ### A. Self-contained Docker image, published via GitHub → pull-to-deploy
 
-**Status:** in progress — branch `feature/docker-publish`, targeting `v1.0.0` (release bump, not a feature bump — see `README.md` Versioning)
+**Status:** merged to `main` in `v1.0.0` (`feature/docker-publish`) — see "Not yet done" below, still pending a real GitHub Actions run and the host cutover
 **Requested by:** Diego, 2026-08-23
 
 Package the app and the web server together as a single Docker image, built and published from GitHub, so redeploying is `docker compose pull && docker compose up -d` on the host instead of the current local-build-and-`rsync` flow (see `deploy/README.md`). Also sets up a natural place to later attach a database/backend service alongside the app container.
@@ -28,7 +28,7 @@ Package the app and the web server together as a single Docker image, built and 
 - [x] Out of scope for now, kept the door open: no database/backend service added; `docker-compose.yml` still supports adding a second service on the same `proxy` network later without restructuring.
 
 **Not yet done / needs the user or a real GitHub Actions run:**
-- The workflow itself has not run yet (needs a push to `main` on GitHub) — the `Dockerfile` has not been build-tested anywhere; no local Docker daemon was available in this session to test-build it.
+- The workflow itself has not run yet — pushing `main` to GitHub is the next step, right after this merge. The `Dockerfile` has not been build-tested anywhere yet (local Docker daemon needs `sudo`, which needs an interactive password this session couldn't supply).
 - The manual "make the GHCR package public" step above.
 - The host (`ds-hetz-bird-01`) still runs the old bind-mounted `nginx:alpine` container from `deploy/docker-compose.yml` — switching it over means copying the new compose file up and running `docker compose pull && docker compose up -d` there (see `deploy/README.md`).
 
