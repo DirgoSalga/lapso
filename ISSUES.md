@@ -10,7 +10,7 @@ Status legend: `open` (not started) · `in progress` · `done`
 
 ### A. Self-contained Docker image, published via GitHub → pull-to-deploy
 
-**Status:** done — merged to `main` in `v1.0.0`, GitHub Actions run [#1](https://github.com/DirgoSalga/lapso/actions/runs/32687701170) built and published `ghcr.io/dirgosalga/lapso:latest` successfully, image confirmed publicly pullable. Only the host cutover is left — see "Not yet done" below.
+**Status:** done — merged to `main` in `v1.0.0`, GitHub Actions run [#1](https://github.com/DirgoSalga/lapso/actions/runs/32687701170) built and published `ghcr.io/dirgosalga/lapso:latest`, and `ds-hetz-bird-01` is now running that image in production. lapso.cloud.dirgosalga.com verified live and serving the same nginx caching rules as before, from the image instead of a bind mount.
 **Requested by:** Diego, 2026-08-23
 
 Package the app and the web server together as a single Docker image, built and published from GitHub, so redeploying is `docker compose pull && docker compose up -d` on the host instead of the current local-build-and-`rsync` flow (see `deploy/README.md`). Also sets up a natural place to later attach a database/backend service alongside the app container.
@@ -27,8 +27,8 @@ Package the app and the web server together as a single Docker image, built and 
 - [x] Rewrote `deploy/README.md`: new layout (no `nginx.conf` on the host anymore), publish/tagging docs, `docker compose pull && docker compose up -d` redeploy steps, and a rollback recipe (pin an older `sha-`/`X.Y.Z` tag).
 - [x] Out of scope for now, kept the door open: no database/backend service added; `docker-compose.yml` still supports adding a second service on the same `proxy` network later without restructuring.
 
-**Not yet done:**
-- The host (`ds-hetz-bird-01`) still runs the old bind-mounted `nginx:alpine` container from `deploy/docker-compose.yml` — switching it over means copying the new compose file up and running `docker compose pull && docker compose up -d` there (see `deploy/README.md`).
+**Follow-up, not blocking:**
+- The old synced `dist/` and `nginx.conf` copies are still sitting unused in `/home/ava/lapso/` on the host (harmless, just no longer referenced by `docker-compose.yml`) — fine to leave or clean up later.
 - The `Dockerfile` was validated by the real GitHub Actions build, not a local build — local Docker still needs `sudo` in this environment (the `docker` group membership added mid-session doesn't apply to the running shell; needs a fresh session to pick up).
 
 ---
