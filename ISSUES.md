@@ -61,7 +61,7 @@ During an active fast, tapping/clicking the big timer readout (currently elapsed
 
 ### 3. Confetti when the goal is reached
 
-**Status:** in progress — branch `feature/goal-confetti`
+**Status:** done — merged to `main` in `v1.1.0` (`feature/goal-confetti`), confirmed working by Diego on the dev server
 **Requested by:** Diego, 2026-08-24
 
 When a fast crosses its goal, show small colourful confetti falling over the background, to symbolize and celebrate the success. Keeps falling for the whole overtime phase, not a brief burst — stops when the fast ends.
