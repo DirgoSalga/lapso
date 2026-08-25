@@ -461,6 +461,24 @@ body {
   text-decoration: underline;
 }
 
+/* .eyebrow-link applied to a <button> (the share button, feature request
+   #7, ISSUES.md) needs its default button chrome reset to read the same
+   as the <a> version. */
+.eyebrow-button {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.eyebrow-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
 .eyebrow-controls {
   display: flex;
   align-items: center;

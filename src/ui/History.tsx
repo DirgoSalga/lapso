@@ -7,6 +7,7 @@ import { loadHistory, loadSettings, subscribe } from '../core/storage'
 import type { CompletedFast } from '../core/types'
 import { Chart } from './Chart'
 import { useSelectedHistoryId } from './router'
+import { ShareButton } from './ShareButton'
 import { TabularTime } from './TabularTime'
 
 export function History() {
@@ -116,7 +117,7 @@ function FastCard({ fast }: { fast: CompletedFast }) {
           <a className="eyebrow-link" href="#/history">
             &larr; back to history
           </a>
-          <p className="eyebrow">card</p>
+          <ShareButton fast={fast} />
         </div>
 
         <div className="history-ring-wrap">
