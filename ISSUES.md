@@ -99,7 +99,7 @@ Add a fast day/night override control near the eyebrow, without disturbing Setti
 
 ### 6. Per-fast "card" view in History, reached from the chart or the list
 
-**Status:** in progress — branch `feature/history-fast-cards`
+**Status:** done — merged to `main` in `v1.4.0` (`feature/history-fast-cards`), confirmed working by Diego on the dev server
 **Requested by:** Diego, 2026-08-26
 
 Visualize a past fast as a card (ring showing completion, goal, actual duration) — Diego's own framing: keep the bar chart to browse quickly, click a bar (or a link in the list underneath) to get the card for that specific fast.
