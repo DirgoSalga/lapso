@@ -88,7 +88,7 @@ Add a glowing edge to a card, matching a reference design Diego provided (2026-0
 
 ### 5. Quick day/night theme toggle near the eyebrow
 
-**Status:** in progress — branch `feature/theme-toggle`
+**Status:** done — merged to `main` in `v1.3.0` (`feature/theme-toggle`), confirmed working by Diego on the dev server
 **Requested by:** Diego, 2026-08-25 (reference: a shadcn/Tailwind sun/moon pill-switch component, no accompanying request text — scope clarified via a follow-up question)
 
 Add a fast day/night override control near the eyebrow, without disturbing Settings' existing 3-way Auto/Day/Night control (`src/ui/Settings.tsx`'s `ThemeSection`, a `role="radiogroup"` segmented control) — the reference itself was a binary dark/light switch with no "auto" concept, and swapping it in for the Settings control outright would have silently dropped "follow OS preference." Asked Diego which of three options to take (replace Settings' control and drop Auto / add a separate quick toggle elsewhere / reskin Settings' control but keep 3 states); **chose "add elsewhere."**
