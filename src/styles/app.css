@@ -566,6 +566,11 @@ body {
   fill: var(--slate);
 }
 
+/* Each bar is a link to its card (feature request #6, ISSUES.md). */
+.chart-bar-link:hover .chart-bar {
+  fill: var(--text-primary);
+}
+
 .chart-caption {
   margin: 8px 0 0;
   font-family: var(--font-mono);
@@ -581,6 +586,9 @@ body {
 }
 
 .history-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
   border-bottom: 1px solid color-mix(in srgb, var(--slate) 25%, transparent);
 }
 
@@ -589,7 +597,8 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   min-height: 44px;
   padding: 10px 4px;
   background: transparent;
@@ -606,7 +615,28 @@ body {
   font-size: 0.8125rem;
 }
 
+/* Link to the full card (feature request #6, ISSUES.md), sitting next to
+   the row's own expand/collapse button rather than replacing it. */
+.history-row-card-link {
+  flex-shrink: 0;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 4px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+
+.history-row-card-link:hover {
+  text-decoration: underline;
+}
+
 .history-row-detail {
+  width: 100%;
   padding: 0 4px 12px;
   color: var(--text-secondary);
   font-size: 0.875rem;
@@ -614,6 +644,58 @@ body {
 
 .history-row-detail p {
   margin: 0 0 4px;
+}
+
+/* A completed fast's card (feature request #6, ISSUES.md) -- a static
+   echo of the live ring, deliberately without the live screen's glow/
+   backdrop treatment (that visual language means "happening right now",
+   which would misrepresent a finished record). */
+.history-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 320px;
+  margin-top: 24px;
+  padding: 24px;
+  border: 1px solid color-mix(in srgb, var(--slate) 30%, transparent);
+  border-radius: 20px;
+}
+
+.history-ring {
+  display: block;
+  width: 160px;
+  height: 160px;
+}
+
+.history-ring-track {
+  stroke: var(--slate);
+  opacity: var(--track-opacity);
+}
+
+.history-card-duration {
+  margin: 12px 0 0;
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 300;
+}
+
+.history-card-goal {
+  margin: 4px 0 0;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.history-card-range {
+  margin: 16px 0 0;
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+}
+
+.history-card-note {
+  margin: 8px 0 0;
+  text-align: center;
+  font-size: 0.9375rem;
 }
 
 .settings-section {

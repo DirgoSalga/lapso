@@ -49,4 +49,11 @@ describe('<Chart>', () => {
     expect(svg?.getAttribute('role')).toBe('img')
     expect(svg?.getAttribute('aria-label')).toMatch(/16 hour goal/)
   })
+
+  it('each bar is a real link to its card, keyboard-reachable (feature: history cards)', () => {
+    const { container } = render(<Chart history={[fast('some-id', 10)]} goalHours={16} />)
+    const link = container.querySelector('a.chart-bar-link')
+    expect(link?.getAttribute('href')).toBe('#/history/some-id')
+    expect(link?.querySelector('.chart-bar')).not.toBeNull()
+  })
 })
