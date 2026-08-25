@@ -12,7 +12,7 @@ import {
   MAX_GOAL_HOURS,
   pluralHours,
 } from '../core/clock'
-import { resolveTheme, snapProgressStep, surfaceColor } from '../core/color'
+import { resolveTheme, ringColor, snapProgressStep, surfaceColor } from '../core/color'
 import { catchUpCopy, headlineMilestone, milestoneCopy } from '../core/milestones'
 import { showMilestoneNotification } from '../core/notify'
 import { formatClockTime, fromDatetimeLocalValue, toDatetimeLocalValue } from '../core/time'
@@ -111,6 +111,7 @@ export function Timer() {
       setCatchUpCard(null)
       document.body.style.backgroundColor = ''
       document.documentElement.style.setProperty('--p', '0')
+      document.documentElement.style.removeProperty('--fast-card-glow')
       return
     }
 
@@ -156,6 +157,9 @@ export function Timer() {
 
       document.body.style.backgroundColor = surfaceColor(d.progress, theme)
       document.documentElement.style.setProperty('--p', String(reduceMotion ? snapProgressStep(d.progress) : d.progress))
+      // Card glow tracks the ring's own live heat-ramp colour (feature
+      // request #4 follow-up, ISSUES.md) instead of a fixed hue.
+      document.documentElement.style.setProperty('--fast-card-glow', ringColor(d.progress))
       // Under reduced motion the ring's position/color still update (spec
       // §5.6: "that is information, not decoration"); only the ambient
       // glow's continuous fade is suppressed, along with the swell below.

@@ -92,6 +92,17 @@ describe('<Timer> active fast', () => {
     expect(loadHistory()).toHaveLength(1)
   })
 
+  it('writes --fast-card-glow tracking the ring colour while active, and clears it when the fast ends (feature: card glow)', () => {
+    startFast(Date.now() - 8 * HOUR_MS, 16) // halfway to goal
+    render(<Timer />)
+
+    const glow = document.documentElement.style.getPropertyValue('--fast-card-glow')
+    expect(glow).toMatch(/^oklch\(/)
+
+    fireEvent.click(screen.getByRole('button', { name: 'End fast' }))
+    expect(document.documentElement.style.getPropertyValue('--fast-card-glow')).toBe('')
+  })
+
   it('continues the readout from elapsed time on a fresh mount, not from zero (spec §14)', () => {
     startFast(Date.now() - 30_000, 16)
     const { container } = render(<Timer />)

@@ -71,7 +71,12 @@ body {
    compete with it. The glow is a radial-gradient "spotlight" masked down
    to a thin border-width band, animated by sliding its background-position
    across an oversized canvas -- the same technique the reference used,
-   just re-colored to the app's own --glow/--ember tokens. */
+   just re-colored to the app's own tokens. One stop, --fast-card-glow, is
+   written per-frame by Timer.tsx to the ring's own live heat-ramp colour
+   (ringColor(progress)) rather than staying fixed, so the glow visually
+   tracks fast progress the same way the ring itself does; --ember anchors
+   the other stop as the hot end. Falls back to the static --glow token
+   before the first frame writes the variable. */
 .fast-card {
   position: relative;
   display: flex;
@@ -89,7 +94,14 @@ body {
   inset: 0;
   padding: 1.5px;
   border-radius: inherit;
-  background-image: radial-gradient(transparent, transparent, var(--glow), var(--ember), transparent, transparent);
+  background-image: radial-gradient(
+    transparent,
+    transparent,
+    var(--fast-card-glow, var(--glow)),
+    var(--ember),
+    transparent,
+    transparent
+  );
   background-size: 300% 300%;
   background-position: 0% 0%;
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
