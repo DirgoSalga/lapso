@@ -73,7 +73,7 @@ When a fast crosses its goal, show small colourful confetti falling over the bac
 
 ### 4. Glowing edge on a card around the whole active-fast screen
 
-**Status:** in progress — branch `feature/ring-card-glow`
+**Status:** done — merged to `main` in `v1.2.0` (`feature/ring-card-glow`), confirmed working by Diego on the dev server
 **Requested by:** Diego, 2026-08-25
 
 Add a glowing edge to a card, matching a reference design Diego provided (2026-08-25): a shadcn/Tailwind "Shine Border" component (`magicui`-style — animated masked radial-gradient border). First pass wrapped only the ring; corrected same-day per Diego's feedback — the card wraps the **whole active-fast UI** (eyebrow, banners, ring, End fast button, recent fasts), not just the ring. Portrait shape, following naturally from the stacked content rather than a fixed aspect-ratio.
