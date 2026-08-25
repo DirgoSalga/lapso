@@ -60,14 +60,14 @@ body {
   outline-offset: 2px;
 }
 
-/* A dot-grid texture behind the card (feature request #4 follow-up,
-   ISSUES.md), ported from a shadcn/Tailwind "Dot Background" reference --
-   same plain-CSS-not-Tailwind rationale as the card glow above. A radial
-   mask fades the dots out in the centre (roughly where the card sits) and
-   in toward the edges, so the card reads as distinct from its surroundings
-   without the texture fighting the card's own content. Fixed + behind
-   everything else in .shell via document order (no explicit z-index
-   needed: painted before its later siblings, and before .confetti's
+/* A dot-grid texture behind every screen (feature request #4 follow-up,
+   ISSUES.md; made global in the #6 follow-up rather than active-fast-only),
+   ported from a shadcn/Tailwind "Dot Background" reference -- same
+   plain-CSS-not-Tailwind rationale as the card glow above. A radial mask
+   fades the dots out in the centre (roughly where a screen's own card/
+   content sits) and in toward the edges. Rendered once in App.tsx, before
+   the routed screen in document order, so it paints behind that screen's
+   content without needing an explicit z-index (and before .confetti's
    explicit z-index:5 either way). */
 .fast-backdrop {
   position: fixed;
@@ -646,22 +646,10 @@ body {
   margin: 0 0 4px;
 }
 
-/* A completed fast's card (feature request #6, ISSUES.md) -- a static
-   echo of the live ring, deliberately without the live screen's glow/
-   backdrop treatment (that visual language means "happening right now",
-   which would misrepresent a finished record). */
-.history-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 100%;
-  max-width: 320px;
-  margin-top: 24px;
-  padding: 24px;
-  border: 1px solid color-mix(in srgb, var(--slate) 30%, transparent);
-  border-radius: 20px;
-}
-
+/* A completed fast's card (feature request #6, ISSUES.md) reuses .fast-card
+   itself (same translucent fill/padding/glowing edge as the live screen) --
+   see History.tsx's FastCard for why. Only the ring badge below stays
+   distinct from the live <Ring>. */
 .history-ring {
   display: block;
   width: 160px;

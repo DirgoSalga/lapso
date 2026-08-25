@@ -305,7 +305,6 @@ export function Timer() {
     <>
       {active ? (
         <main className="shell" data-phase={readout?.phase ?? 'fasting'}>
-          <div className="fast-backdrop" aria-hidden="true" />
           {celebrating && <Confetti />}
           <div className="fast-card">
             <div className="eyebrow-block">

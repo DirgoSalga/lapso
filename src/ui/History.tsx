@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import type { CSSProperties } from 'react'
 import { formatDuration, hourGoalLabel, HOUR_MS } from '../core/clock'
 import { ringColor } from '../core/color'
 import { formatDateTime } from '../core/time'
@@ -81,28 +82,35 @@ function HistoryRow({ fast }: { fast: CompletedFast }) {
   )
 }
 
-// A completed fast's card (feature request #6, ISSUES.md): a static echo
-// of the live Timer ring, reached from a chart bar or a history row's
-// "card" link. Deliberately its own simple static SVG, not the live
-// <Ring> (built for a per-frame animation loop and an imperative handle
-// that a finished, unchanging record has no use for), and no glow/backdrop
-// treatment -- that visual language signals "a fast is happening right
-// now" elsewhere in the app, which would misrepresent a historical record.
+// A completed fast's card (feature request #6, ISSUES.md), reached from a
+// chart bar or a history row's "card" link. First pass deliberately used
+// its own plain styling, reasoning the live .fast-card's glow/backdrop
+// meant "happening right now" and would misrepresent a finished record.
+// Revised per Diego (2026-08-26): reuses .fast-card itself (same
+// translucent fill, padding, glowing edge) so the two screens read as the
+// same design language. --fast-card-glow is set inline to this fast's own
+// final ringColor(progress) rather than written per-frame like the live
+// version -- there's no ongoing animation loop for a finished record, just
+// a fixed value the same CSS variable the live card already reads.
+// The ring badge stays its own simple static SVG rather than the live
+// <Ring> (built around a per-frame animation loop and an imperative handle
+// a finished, unchanging record has no use for).
 function FastCard({ fast }: { fast: CompletedFast }) {
   const durationMs = fast.endedAt - fast.startedAt
   const goalMs = fast.goalHours * HOUR_MS
   const progress = goalMs > 0 ? Math.min(durationMs / goalMs, 1) : 1
+  const glowStyle = { '--fast-card-glow': ringColor(progress) } as CSSProperties
 
   return (
     <main className="shell">
-      <div className="eyebrow-row">
-        <a className="eyebrow-link" href="#/history">
-          &larr; back to history
-        </a>
-        <p className="eyebrow">card</p>
-      </div>
+      <div className="fast-card" style={glowStyle}>
+        <div className="eyebrow-row">
+          <a className="eyebrow-link" href="#/history">
+            &larr; back to history
+          </a>
+          <p className="eyebrow">card</p>
+        </div>
 
-      <div className="history-card">
         <FastRingBadge progress={progress} />
         <p className="history-card-duration">{formatDuration(durationMs)}</p>
         <p className="history-card-goal">{hourGoalLabel(fast.goalHours)}</p>
