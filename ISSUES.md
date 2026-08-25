@@ -73,10 +73,13 @@ When a fast crosses its goal, show small colourful confetti falling over the bac
 
 ### 4. Glowing edge on the ring's card during a fast
 
-**Status:** open — blocked on a reference design from Diego
+**Status:** in progress — branch `feature/ring-card-glow`
 **Requested by:** Diego, 2026-08-25
 
-Add a glowing edge to the card that shows the ring during a fast, matching a reference design Diego will provide.
+Add a glowing edge to the card that shows the ring during a fast, matching a reference design Diego provided (2026-08-25): a shadcn/Tailwind "Shine Border" component (`magicui`-style — animated masked radial-gradient border).
 
-- There's currently no "card" here to glow — `.timer-ring-wrap` (`src/ui/Timer.tsx`, styled in `src/styles/app.css`) is a plain positioning wrapper around `<Ring>` and the readout, with no background/border/shadow. Confirmed by reading the CSS before filing this. If a card treatment doesn't already exist by the time this is picked up, add one as part of this work.
-- Needs the reference before implementation starts — visual language (color, blur/spread, whether it pulses or is static, whether it tracks the ring's heat-ramp progress color or is fixed) is undetermined until then.
+- **The reference was a shadcn/Tailwind/Next.js component; this project is none of those** (Vite SPA, hand-rolled CSS on OKLCH tokens, no Tailwind/shadcn/`components.json`, `next-themes` doesn't even apply since there's no Next.js). `SPEC.md`'s runtime dep budget caps at ≤3 (`react`, `react-dom`; see `PLAN.md` §1.C) specifically to avoid exactly this kind of dependency pull-in. Rather than scaffold Tailwind/shadcn for one visual effect, ported just the underlying *technique* into plain CSS: `src/styles/app.css`'s `.timer-ring-wrap::before` uses the same trick the reference did (a radial-gradient painted across an oversized `background-size`, masked down to a thin border-width band via `mask-composite: exclude`, animated by sliding `background-position`) with zero new dependencies.
+- Added the card itself: `.timer-ring-wrap` (`src/ui/Timer.tsx`) now has `padding`/`border-radius` — previously a plain positioning wrapper with no visual box (confirmed before filing this issue). Left it **transparent** (no background fill) — the page's own progress-driven background wash (spec §5.2, written per-frame onto `document.body`) already carries colour here; a second solid card fill behind the ring would fight it rather than sit quietly under the ring, per the app's "everything else stays quiet" design language.
+- Colours: reference used an arbitrary purple/pink/orange trio; re-picked to the app's own `--glow`/`--ember` tokens (already used for the ring's own hot end and the confetti feature) so the glow reads as this app's palette, not a generic one.
+- Runs continuously whenever `.timer-ring-wrap` is rendered, i.e. for the whole active fast (both fasting and overtime phases) — no JS trigger needed, since that markup is already only mounted while a fast is active.
+- Reduced motion: the gradient/mask render unconditionally (so the card still shows a static coloured edge), but the sliding `background-position` animation is gated behind `@media (prefers-reduced-motion: no-preference)`, matching the existing swell/confetti convention *and* mirroring what the reference's own `motion-safe:` Tailwind variant did.
