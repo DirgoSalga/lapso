@@ -1,7 +1,7 @@
 import { act, render, screen, fireEvent, cleanup } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Timer } from './Timer'
-import { defaultSettings, endFast, loadActive, loadHistory, saveSettings, startFast } from '../core/storage'
+import { defaultSettings, endFast, loadActive, loadHistory, loadSettings, saveSettings, startFast } from '../core/storage'
 import { HOUR_MS } from '../core/clock'
 
 beforeEach(() => {
@@ -19,6 +19,19 @@ describe('<Timer> idle state', () => {
     render(<Timer />)
     expect(screen.getByRole('button', { name: 'Start fast' })).toBeTruthy()
     expect((screen.getByRole('spinbutton') as HTMLInputElement).value).toBe('18')
+  })
+
+  it('the theme toggle sets an explicit day/night, never re-entering auto (feature: quick theme toggle)', () => {
+    render(<Timer />) // defaultSettings(): theme 'auto', resolves to 'day' with no matchMedia in jsdom
+    const toggle = screen.getByRole('switch', { name: 'Switch to night theme' })
+    expect(toggle.getAttribute('aria-checked')).toBe('false')
+
+    fireEvent.click(toggle)
+    expect(loadSettings().theme).toBe('night') // explicit, not back to 'auto'
+    expect(screen.getByRole('switch', { name: 'Switch to day theme' }).getAttribute('aria-checked')).toBe('true')
+
+    fireEvent.click(screen.getByRole('switch', { name: 'Switch to day theme' }))
+    expect(loadSettings().theme).toBe('day')
   })
 
   it('shows the projected completion time, live as the goal changes (feature: completion time)', () => {
@@ -80,6 +93,15 @@ describe('<Timer> active fast', () => {
     expect(endButton).not.toBeDisabled()
     endButton.focus()
     expect(document.activeElement).toBe(endButton)
+  })
+
+  it('offers the same quick theme toggle during an active fast (feature: quick theme toggle)', () => {
+    startFast(Date.now() - HOUR_MS, 16)
+    render(<Timer />)
+
+    const toggle = screen.getByRole('switch', { name: 'Switch to night theme' })
+    fireEvent.click(toggle)
+    expect(loadSettings().theme).toBe('night')
   })
 
   it('ending a fast returns to idle without a page reload and records history', () => {

@@ -461,6 +461,60 @@ body {
   text-decoration: underline;
 }
 
+.eyebrow-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Quick day/night toggle (feature request #5, ISSUES.md) -- ported from a
+   shadcn/Tailwind reference into plain CSS. The button is the full 44px
+   touch target; the pill/thumb below it is a smaller visible decoration
+   centered inside, not the hit area itself. */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.theme-toggle-track {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 34px;
+  height: 20px;
+  padding: 2px;
+  border: 1px solid var(--slate);
+  border-radius: 999px;
+}
+
+.theme-toggle-thumb {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--surface-warm);
+  color: var(--text-secondary);
+  transition:
+    transform 200ms ease,
+    background-color 200ms ease,
+    color 200ms ease;
+}
+
+.theme-toggle[aria-checked='true'] .theme-toggle-thumb {
+  transform: translateX(14px);
+  background: var(--graphite);
+  color: var(--porcelain);
+}
+
 .mono {
   font-family: var(--font-mono);
   color: var(--text-secondary);
