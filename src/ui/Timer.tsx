@@ -34,6 +34,7 @@ import type { ActiveFast, CompletedFast, Phase, Settings } from '../core/types'
 import { Confetti } from './Confetti'
 import { Ring } from './Ring'
 import type { RingHandle } from './Ring'
+import { TabularTime } from './TabularTime'
 import { ThemeToggle } from './ThemeToggle'
 
 const START_TIME_WINDOW_MS = 48 * HOUR_MS
@@ -500,22 +501,6 @@ function RecentFasts({ history }: { history: CompletedFast[] }) {
   )
 }
 
-const DIGIT = /[0-9]/
-
-// Wraps each digit in a fixed-width span (spec §5.3) so the layout never
-// jitters per second, regardless of whether the loaded Fraunces cut
-// actually exposes the tnum OpenType feature.
-function TabularTime({ value }: { value: string }) {
-  return (
-    <>
-      {[...value].map((char, i) => (
-        <span key={i} className={DIGIT.test(char) ? 'tnum-digit' : undefined}>
-          {char}
-        </span>
-      ))}
-    </>
-  )
-}
 
 interface EditStartTimeProps {
   value: number

@@ -98,7 +98,7 @@ describe('<History> fast card (feature request #6)', () => {
     const { container } = render(<History />)
 
     expect(container.querySelector('.history-ring')).not.toBeNull()
-    expect(screen.getByText('12 hours')).toBeTruthy()
+    expect(container.querySelector('.history-readout-time')?.textContent).toBe('12:00:00')
     expect(screen.getByText('16 hour goal')).toBeTruthy()
     expect(screen.getByText('felt good')).toBeTruthy()
     expect(screen.queryByRole('link', { name: /back to history/i })?.getAttribute('href')).toBe('#/history')

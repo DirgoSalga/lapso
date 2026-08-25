@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import type { CSSProperties } from 'react'
-import { formatDuration, hourGoalLabel, HOUR_MS } from '../core/clock'
+import { formatDuration, formatElapsedClock, hourGoalLabel, HOUR_MS } from '../core/clock'
 import { ringColor } from '../core/color'
 import { formatDateTime } from '../core/time'
 import { loadHistory, loadSettings, subscribe } from '../core/storage'
 import type { CompletedFast } from '../core/types'
 import { Chart } from './Chart'
 import { useSelectedHistoryId } from './router'
+import { TabularTime } from './TabularTime'
 
 export function History() {
   const [history, setHistory] = useState<CompletedFast[]>(() => loadHistory())
@@ -96,7 +97,12 @@ function HistoryRow({ fast }: { fast: CompletedFast }) {
 // variables, since there's no ongoing animation loop for a finished
 // record. The ring itself stays its own simple static SVG rather than the
 // live <Ring> (built around a per-frame animation loop and an imperative
-// handle a finished, unchanging record has no use for).
+// handle a finished, unchanging record has no use for). The duration uses
+// formatElapsedClock()/<TabularTime> -- the live readout's "09:00:00"
+// notation, not formatDuration()'s "9 hours" prose -- per a fourth round
+// of feedback the same day ("don't use the words hours minutes"); the
+// list rows below still use the prose form, untouched, since that's an
+// established, different convention (also matches the chart's tooltips).
 function FastCard({ fast }: { fast: CompletedFast }) {
   const durationMs = fast.endedAt - fast.startedAt
   const goalMs = fast.goalHours * HOUR_MS
@@ -116,7 +122,9 @@ function FastCard({ fast }: { fast: CompletedFast }) {
         <div className="history-ring-wrap">
           <FastRingBadge progress={progress} />
           <div className="history-readout">
-            <p className="history-readout-time">{formatDuration(durationMs)}</p>
+            <p className="history-readout-time">
+              <TabularTime value={formatElapsedClock(durationMs)} />
+            </p>
             <p className="readout-goal">{hourGoalLabel(fast.goalHours)}</p>
           </div>
         </div>
