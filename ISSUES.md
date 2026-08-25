@@ -115,7 +115,7 @@ Visualize a past fast as a card (ring showing completion, goal, actual duration)
 
 ### 7. Share a fast's card as a real picture file
 
-**Status:** in progress — branch `feature/share-fast-card`
+**Status:** merged to `main` in `v1.5.0` (`feature/share-fast-card`) — Diego confirmed the generated PNG looks good via the dev server's download fallback (plain HTTP there can't exercise the real share sheet, which needs HTTPS). Still needs a real-device check of the actual native share-to-WhatsApp flow once deployed to production.
 **Requested by:** Diego, 2026-08-27
 
 Share button on a fast's card (feature #6), using the phone's native share sheet (WhatsApp etc.) to send **a real picture file** — explicitly **not** a link back to the app, since `lapso.cloud.dirgosalga.com` is only reachable inside Diego's netbird mesh and would be a dead link for anyone outside it.
