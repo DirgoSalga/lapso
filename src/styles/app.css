@@ -648,12 +648,23 @@ body {
 
 /* A completed fast's card (feature request #6, ISSUES.md) reuses .fast-card
    itself (same translucent fill/padding/glowing edge as the live screen) --
-   see History.tsx's FastCard for why. Only the ring badge below stays
-   distinct from the live <Ring>. */
+   see History.tsx's FastCard for why. .history-ring-wrap mirrors
+   .timer-ring-wrap (full-width ring, duration centred inside it via an
+   absolutely-positioned overlay) rather than a small fixed badge with text
+   below -- both to match the live layout and because a full-size ring is
+   most of what makes the live card read as tall/portrait. Only the ring
+   itself stays its own simple static SVG, distinct from the live <Ring>. */
+.history-ring-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+  margin: 32px 0;
+}
+
 .history-ring {
   display: block;
-  width: 160px;
-  height: 160px;
+  width: 100%;
+  height: auto;
 }
 
 .history-ring-track {
@@ -661,21 +672,34 @@ body {
   opacity: var(--track-opacity);
 }
 
-.history-card-duration {
-  margin: 12px 0 0;
-  font-family: var(--font-display);
-  font-size: 1.75rem;
-  font-weight: 300;
+.history-readout {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  pointer-events: none;
 }
 
-.history-card-goal {
-  margin: 4px 0 0;
-  color: var(--text-secondary);
-  font-size: 0.875rem;
+.history-readout-time {
+  margin: 0;
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+  font-size: 2.25rem;
+  color: var(--text-primary);
+  /* Same signature move as the live readout (spec §5.3): thickens/softens
+     with progress, frozen here at this fast's own final value via --p set
+     inline in History.tsx, rather than animated per-frame. */
+  font-variation-settings:
+    'wght' calc(300 + 400 * var(--p, 0)),
+    'SOFT' calc(0 + 100 * var(--p, 0)),
+    'opsz' calc(24 + 120 * var(--p, 0));
 }
 
 .history-card-range {
-  margin: 16px 0 0;
+  margin: 0;
   color: var(--text-secondary);
   font-size: 0.8125rem;
 }

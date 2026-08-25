@@ -83,27 +83,29 @@ function HistoryRow({ fast }: { fast: CompletedFast }) {
 }
 
 // A completed fast's card (feature request #6, ISSUES.md), reached from a
-// chart bar or a history row's "card" link. First pass deliberately used
-// its own plain styling, reasoning the live .fast-card's glow/backdrop
-// meant "happening right now" and would misrepresent a finished record.
-// Revised per Diego (2026-08-26): reuses .fast-card itself (same
-// translucent fill, padding, glowing edge) so the two screens read as the
-// same design language. --fast-card-glow is set inline to this fast's own
-// final ringColor(progress) rather than written per-frame like the live
-// version -- there's no ongoing animation loop for a finished record, just
-// a fixed value the same CSS variable the live card already reads.
-// The ring badge stays its own simple static SVG rather than the live
-// <Ring> (built around a per-frame animation loop and an imperative handle
-// a finished, unchanging record has no use for).
+// chart bar or a history row's "card" link. Matches the live active-fast
+// screen per Diego (2026-08-26, two rounds of feedback): reuses .fast-card
+// itself (translucent fill, padding, glowing edge, eyebrow nested inside),
+// the duration sits *inside* the ring the same way the live readout does
+// (not below it), and the ring is full-width like .timer-ring-wrap rather
+// than a small fixed badge -- both of which also make the card as tall/
+// portrait as the live one, which was the other half of that feedback.
+// --fast-card-glow and --p are both set inline to this fast's own final
+// values (ringColor(progress), progress itself) rather than written
+// per-frame like the live version -- fixed values on the same CSS
+// variables, since there's no ongoing animation loop for a finished
+// record. The ring itself stays its own simple static SVG rather than the
+// live <Ring> (built around a per-frame animation loop and an imperative
+// handle a finished, unchanging record has no use for).
 function FastCard({ fast }: { fast: CompletedFast }) {
   const durationMs = fast.endedAt - fast.startedAt
   const goalMs = fast.goalHours * HOUR_MS
   const progress = goalMs > 0 ? Math.min(durationMs / goalMs, 1) : 1
-  const glowStyle = { '--fast-card-glow': ringColor(progress) } as CSSProperties
+  const cardStyle = { '--fast-card-glow': ringColor(progress), '--p': progress } as CSSProperties
 
   return (
     <main className="shell">
-      <div className="fast-card" style={glowStyle}>
+      <div className="fast-card" style={cardStyle}>
         <div className="eyebrow-row">
           <a className="eyebrow-link" href="#/history">
             &larr; back to history
@@ -111,9 +113,14 @@ function FastCard({ fast }: { fast: CompletedFast }) {
           <p className="eyebrow">card</p>
         </div>
 
-        <FastRingBadge progress={progress} />
-        <p className="history-card-duration">{formatDuration(durationMs)}</p>
-        <p className="history-card-goal">{hourGoalLabel(fast.goalHours)}</p>
+        <div className="history-ring-wrap">
+          <FastRingBadge progress={progress} />
+          <div className="history-readout">
+            <p className="history-readout-time">{formatDuration(durationMs)}</p>
+            <p className="readout-goal">{hourGoalLabel(fast.goalHours)}</p>
+          </div>
+        </div>
+
         <p className="mono history-card-range">
           {formatDateTime(fast.startedAt)} &rarr; {formatDateTime(fast.endedAt)}
         </p>
