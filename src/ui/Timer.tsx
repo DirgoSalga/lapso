@@ -13,6 +13,7 @@ import {
   pluralHours,
 } from '../core/clock'
 import { resolveTheme, ringColor, snapProgressStep, surfaceColor } from '../core/color'
+import type { Theme } from '../core/color'
 import { catchUpCopy, headlineMilestone, milestoneCopy } from '../core/milestones'
 import { showMilestoneNotification } from '../core/notify'
 import { formatClockTime, fromDatetimeLocalValue, toDatetimeLocalValue } from '../core/time'
@@ -25,6 +26,7 @@ import {
   loadSettings,
   recordLastSeenNow,
   saveActive,
+  saveSettings,
   startFast,
   subscribe,
 } from '../core/storage'
@@ -32,6 +34,7 @@ import type { ActiveFast, CompletedFast, Phase, Settings } from '../core/types'
 import { Confetti } from './Confetti'
 import { Ring } from './Ring'
 import type { RingHandle } from './Ring'
+import { ThemeToggle } from './ThemeToggle'
 
 const START_TIME_WINDOW_MS = 48 * HOUR_MS
 const UNDO_WINDOW_MS = 5000
@@ -258,6 +261,12 @@ export function Timer() {
     endFast(Date.now())
   }, [])
 
+  // Quick theme override (feature request #5, ISSUES.md): always sets an
+  // explicit day/night, never re-enters 'auto' -- that stays Settings-only.
+  const handleThemeToggle = useCallback(() => {
+    saveSettings({ ...loadSettings(), theme: theme === 'night' ? 'day' : 'night' })
+  }, [theme])
+
   const handleCorrectStart = useCallback(
     (newStartedAt: number) => {
       if (!active) return
@@ -302,9 +311,12 @@ export function Timer() {
             <div className="eyebrow-block">
               <div className="eyebrow-row">
                 <p className="eyebrow">fasting since {formatClockTime(active.startedAt)}</p>
-                <a className="eyebrow-link" href="#/settings">
-                  settings
-                </a>
+                <div className="eyebrow-controls">
+                  <ThemeToggle theme={theme} onToggle={handleThemeToggle} />
+                  <a className="eyebrow-link" href="#/settings">
+                    settings
+                  </a>
+                </div>
               </div>
               <p className="eyebrow eyebrow-sub">
                 done {formatClockTime(completesAt(active.startedAt, active.goalHours))}
@@ -361,7 +373,13 @@ export function Timer() {
           </div>
         </main>
       ) : (
-        <IdleStart defaultGoalHours={settings.defaultGoalHours} onStart={handleIdleStart} history={history} />
+        <IdleStart
+          defaultGoalHours={settings.defaultGoalHours}
+          onStart={handleIdleStart}
+          history={history}
+          theme={theme}
+          onThemeToggle={handleThemeToggle}
+        />
       )}
 
       {undoVisible && (
@@ -386,9 +404,11 @@ interface IdleStartProps {
   defaultGoalHours: number
   onStart: (startedAt: number, goalHours: number) => void
   history: CompletedFast[]
+  theme: Theme
+  onThemeToggle: () => void
 }
 
-function IdleStart({ defaultGoalHours, onStart, history }: IdleStartProps) {
+function IdleStart({ defaultGoalHours, onStart, history, theme, onThemeToggle }: IdleStartProps) {
   const [goalHours, setGoalHours] = useState(defaultGoalHours)
   // null = untouched: resolves to "now" at submit time. A string here would
   // round-trip through datetime-local's minute precision and silently
@@ -414,9 +434,12 @@ function IdleStart({ defaultGoalHours, onStart, history }: IdleStartProps) {
     <main className="shell" data-phase="idle">
       <div className="eyebrow-row">
         <p className="eyebrow">lapso</p>
-        <a className="eyebrow-link" href="#/settings">
-          settings
-        </a>
+        <div className="eyebrow-controls">
+          <ThemeToggle theme={theme} onToggle={onThemeToggle} />
+          <a className="eyebrow-link" href="#/settings">
+            settings
+          </a>
+        </div>
       </div>
 
       <div className="idle-form">
