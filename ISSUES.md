@@ -70,3 +70,13 @@ When a fast crosses its goal, show small colourful confetti falling over the bac
 - The ring's goal swell/vibrate stayed a one-off pulse on the fasting→overtime edge — only confetti's lifetime changed.
 - Respects the app's existing reduced-motion gate (`settings.reduceMotion === 'always'` or OS `prefers-reduced-motion`) — skipped entirely under reduced motion, same as the swell.
 - Non-interactive (`pointer-events: none`, `aria-hidden`) and CSS-animation driven (`animation-iteration-count: infinite`, no canvas, no per-frame JS loop) so it stays cheap no matter how long overtime runs.
+
+### 4. Glowing edge on the ring's card during a fast
+
+**Status:** open — blocked on a reference design from Diego
+**Requested by:** Diego, 2026-08-25
+
+Add a glowing edge to the card that shows the ring during a fast, matching a reference design Diego will provide.
+
+- There's currently no "card" here to glow — `.timer-ring-wrap` (`src/ui/Timer.tsx`, styled in `src/styles/app.css`) is a plain positioning wrapper around `<Ring>` and the readout, with no background/border/shadow. Confirmed by reading the CSS before filing this. If a card treatment doesn't already exist by the time this is picked up, add one as part of this work.
+- Needs the reference before implementation starts — visual language (color, blur/spread, whether it pulses or is static, whether it tracks the ring's heat-ramp progress color or is fixed) is undetermined until then.
