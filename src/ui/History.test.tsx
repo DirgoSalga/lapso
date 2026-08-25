@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, cleanup } from '@testing-library/react'
+import { act, render, screen, fireEvent, cleanup } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { History } from './History'
 import { defaultSettings, saveHistory, saveSettings } from '../core/storage'
@@ -75,5 +75,57 @@ describe('<History>', () => {
     render(<History />)
     const back = screen.getByRole('link', { name: /back/i })
     expect(back.getAttribute('href')).toBe('#/')
+  })
+})
+
+describe('<History> fast card (feature request #6)', () => {
+  afterEach(() => {
+    window.location.hash = ''
+  })
+
+  it('each row offers a "card" link alongside its own expand toggle', () => {
+    saveHistory([fast('a', 0, 12)])
+    render(<History />)
+
+    expect(screen.getByRole('button')).toBeTruthy() // the expand toggle, unaffected
+    const cardLink = screen.getByRole('link', { name: 'card' })
+    expect(cardLink.getAttribute('href')).toBe('#/history/a')
+  })
+
+  it('shows the card directly on a #/history/<id> direct load, with ring/duration/goal/range', () => {
+    saveHistory([fast('a', 0, 12, 'felt good')])
+    window.location.hash = '#/history/a'
+    const { container } = render(<History />)
+
+    expect(container.querySelector('.history-ring')).not.toBeNull()
+    expect(container.querySelector('.history-readout-time')?.textContent).toBe('12:00:00')
+    expect(screen.getByText('16 hour goal')).toBeTruthy()
+    expect(screen.getByText('felt good')).toBeTruthy()
+    expect(screen.queryByRole('link', { name: /back to history/i })?.getAttribute('href')).toBe('#/history')
+  })
+
+  it('switches from the list to the card on a hashchange (clicking a bar or row link navigates the same way)', () => {
+    saveHistory([fast('a', 0, 12)])
+    const { container } = render(<History />)
+    expect(container.querySelector('.history-ring')).toBeNull()
+
+    const cardLink = screen.getByRole('link', { name: 'card' })
+    expect(cardLink.getAttribute('href')).toBe('#/history/a') // what the click below would navigate to
+
+    act(() => {
+      window.location.hash = '#/history/a'
+      window.dispatchEvent(new HashChangeEvent('hashchange'))
+    })
+    expect(container.querySelector('.history-ring')).not.toBeNull()
+    expect(container.querySelector('.history-list')).toBeNull()
+  })
+
+  it('falls back to the list for an id that does not resolve to any fast', () => {
+    saveHistory([fast('a', 0, 12)])
+    window.location.hash = '#/history/does-not-exist'
+    const { container } = render(<History />)
+
+    expect(container.querySelector('.history-ring')).toBeNull()
+    expect(container.querySelector('.history-list')).not.toBeNull()
   })
 })

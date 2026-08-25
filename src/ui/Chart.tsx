@@ -1,5 +1,6 @@
 import type { CompletedFast } from '../core/types'
-import { HOUR_MS, hourGoalLabel, pluralHours } from '../core/clock'
+import { formatDuration, HOUR_MS, hourGoalLabel } from '../core/clock'
+import { formatDateTime } from '../core/time'
 
 const WIDTH = 320
 const HEIGHT = 120
@@ -15,7 +16,13 @@ interface ChartProps {
 // Hand-rolled SVG bar chart of the last 30 fasts (spec §8). Bars are a
 // single neutral color at every height and a hairline marks the current
 // default goal -- durations are facts, not verdicts (spec §9.6): no
-// red/green, no threshold the chart treats as pass or fail.
+// red/green, no threshold the chart treats as pass or fail. Each bar is
+// also a link to that fast's card (feature request #6, ISSUES.md); the
+// outer svg keeps role="img" for the chart-as-a-whole, so its nested
+// links are a slight ARIA tension (a container can't really be both an
+// "image" and interactive) -- kept anyway since it's still keyboard-
+// and screen-reader-reachable in practice, and splitting the chart into
+// a non-image wrapper for this alone felt like the wrong tradeoff.
 export function Chart({ history, goalHours }: ChartProps) {
   const recent = history.slice(-MAX_BARS)
 
@@ -51,10 +58,22 @@ export function Chart({ history, goalHours }: ChartProps) {
           const barHeight = Math.max(1, (hours / maxHours) * plotHeight)
           const x = PADDING_X + i * (barWidth + BAR_GAP)
           const y = plotHeight - barHeight
+          const durationMs = fast.endedAt - fast.startedAt
           return (
-            <rect key={fast.id} className="chart-bar" x={x} y={y} width={barWidth} height={barHeight}>
-              <title>{pluralHours(Math.round(hours * 10) / 10)}</title>
-            </rect>
+            // Each bar is a real link to its card (feature request #6,
+            // ISSUES.md), not a click handler -- keyboard-reachable and
+            // history-navigable (browser back returns to the list) for
+            // free, matching how #/history and #/settings already work.
+            <a
+              key={fast.id}
+              href={`#/history/${encodeURIComponent(fast.id)}`}
+              className="chart-bar-link"
+              aria-label={`${formatDateTime(fast.startedAt)}, ${formatDuration(durationMs)}. View card.`}
+            >
+              <rect className="chart-bar" x={x} y={y} width={barWidth} height={barHeight}>
+                <title>{formatDuration(durationMs)}</title>
+              </rect>
+            </a>
           )
         })}
       </svg>

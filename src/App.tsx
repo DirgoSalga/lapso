@@ -17,7 +17,13 @@ export default function App() {
     document.documentElement.dataset.theme = themePreference
   }, [themePreference])
 
-  if (route === 'history') return <History />
-  if (route === 'settings') return <Settings />
-  return <Timer />
+  return (
+    <>
+      {/* Dot-grid texture (feature request #4 follow-up, ISSUES.md), now
+          global rather than active-fast-only: one instance behind every
+          screen instead of each screen rendering its own. */}
+      <div className="fast-backdrop" aria-hidden="true" />
+      {route === 'history' ? <History /> : route === 'settings' ? <Settings /> : <Timer />}
+    </>
+  )
 }

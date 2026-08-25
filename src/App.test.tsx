@@ -39,6 +39,17 @@ describe('<App> routing (spec §8)', () => {
   })
 })
 
+describe('<App> background (feature request #4/#6 follow-up: global backdrop)', () => {
+  it('renders the dot backdrop on every route, not just the active-fast screen', () => {
+    for (const hash of ['', '#/history', '#/settings']) {
+      window.location.hash = hash
+      const { container, unmount } = render(<App />)
+      expect(container.querySelector('.fast-backdrop')).not.toBeNull()
+      unmount()
+    }
+  })
+})
+
 describe('<App> theme application (spec §5.2/Gate 7: "theme switches live")', () => {
   it('applies data-theme immediately from the Settings screen, not just while Timer is mounted', () => {
     window.location.hash = '#/settings'
