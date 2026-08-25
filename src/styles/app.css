@@ -60,6 +60,99 @@ body {
   outline-offset: 2px;
 }
 
+/* A dot-grid texture behind the card (feature request #4 follow-up,
+   ISSUES.md), ported from a shadcn/Tailwind "Dot Background" reference --
+   same plain-CSS-not-Tailwind rationale as the card glow above. A radial
+   mask fades the dots out in the centre (roughly where the card sits) and
+   in toward the edges, so the card reads as distinct from its surroundings
+   without the texture fighting the card's own content. Fixed + behind
+   everything else in .shell via document order (no explicit z-index
+   needed: painted before its later siblings, and before .confetti's
+   explicit z-index:5 either way). */
+.fast-backdrop {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(var(--slate) 1px, transparent 1px);
+  background-size: 20px 20px;
+  opacity: 0.3;
+  -webkit-mask-image: radial-gradient(ellipse at center, transparent 25%, black 70%);
+  mask-image: radial-gradient(ellipse at center, transparent 25%, black 70%);
+}
+
+/* The card around the whole active-fast screen, with a glowing animated
+   edge (feature request #4, ISSUES.md) -- ported from a shadcn/Tailwind
+   "Shine Border" reference into plain CSS (see ISSUES.md for why: this
+   project has no Tailwind/shadcn/Next.js, and the spec caps runtime deps
+   at <=3). Portrait by nature of its stacked content (eyebrow, ring,
+   button, recent fasts), not a fixed aspect-ratio. Given a soft
+   translucent fill (rather than fully transparent, the first pass's
+   choice) once the dot backdrop above was added -- a card needs some
+   opacity to actually read as distinct from a textured background behind
+   it; color-mix keeps a hint of the page's progress-driven background
+   wash (spec §5.2) showing through rather than fully hiding it. The glow
+   is a radial-gradient "spotlight" masked down to a thin border-width
+   band, animated by sliding its background-position across an oversized
+   canvas -- the same technique the reference used, just re-colored to the
+   app's own tokens. One stop, --fast-card-glow, is written per-frame by
+   Timer.tsx to the ring's own live heat-ramp colour (ringColor(progress))
+   rather than staying fixed, so the glow visually tracks fast progress
+   the same way the ring itself does; --ember anchors the other stop as
+   the hot end. Falls back to the static --glow token before the first
+   frame writes the variable. */
+.fast-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 368px;
+  padding: 24px;
+  border-radius: 24px;
+  background: color-mix(in oklch, var(--surface) 88%, transparent);
+}
+
+.fast-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1.5px;
+  border-radius: inherit;
+  background-image: radial-gradient(
+    transparent,
+    transparent,
+    var(--fast-card-glow, var(--glow)),
+    var(--ember),
+    transparent,
+    transparent
+  );
+  background-size: 300% 300%;
+  background-position: 0% 0%;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes fast-card-shine {
+    0% {
+      background-position: 0% 0%;
+    }
+    50% {
+      background-position: 100% 100%;
+    }
+    100% {
+      background-position: 0% 0%;
+    }
+  }
+
+  .fast-card::before {
+    animation: fast-card-shine 14s linear infinite;
+  }
+}
+
 .timer-ring-wrap {
   position: relative;
   width: 100%;

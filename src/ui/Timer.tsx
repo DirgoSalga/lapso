@@ -12,7 +12,7 @@ import {
   MAX_GOAL_HOURS,
   pluralHours,
 } from '../core/clock'
-import { resolveTheme, snapProgressStep, surfaceColor } from '../core/color'
+import { resolveTheme, ringColor, snapProgressStep, surfaceColor } from '../core/color'
 import { catchUpCopy, headlineMilestone, milestoneCopy } from '../core/milestones'
 import { showMilestoneNotification } from '../core/notify'
 import { formatClockTime, fromDatetimeLocalValue, toDatetimeLocalValue } from '../core/time'
@@ -111,6 +111,7 @@ export function Timer() {
       setCatchUpCard(null)
       document.body.style.backgroundColor = ''
       document.documentElement.style.setProperty('--p', '0')
+      document.documentElement.style.removeProperty('--fast-card-glow')
       return
     }
 
@@ -156,6 +157,9 @@ export function Timer() {
 
       document.body.style.backgroundColor = surfaceColor(d.progress, theme)
       document.documentElement.style.setProperty('--p', String(reduceMotion ? snapProgressStep(d.progress) : d.progress))
+      // Card glow tracks the ring's own live heat-ramp colour (feature
+      // request #4 follow-up, ISSUES.md) instead of a fixed hue.
+      document.documentElement.style.setProperty('--fast-card-glow', ringColor(d.progress))
       // Under reduced motion the ring's position/color still update (spec
       // §5.6: "that is information, not decoration"); only the ambient
       // glow's continuous fade is suppressed, along with the swell below.
@@ -292,64 +296,69 @@ export function Timer() {
     <>
       {active ? (
         <main className="shell" data-phase={readout?.phase ?? 'fasting'}>
+          <div className="fast-backdrop" aria-hidden="true" />
           {celebrating && <Confetti />}
-          <div className="eyebrow-block">
-            <div className="eyebrow-row">
-              <p className="eyebrow">fasting since {formatClockTime(active.startedAt)}</p>
-              <a className="eyebrow-link" href="#/settings">
-                settings
-              </a>
+          <div className="fast-card">
+            <div className="eyebrow-block">
+              <div className="eyebrow-row">
+                <p className="eyebrow">fasting since {formatClockTime(active.startedAt)}</p>
+                <a className="eyebrow-link" href="#/settings">
+                  settings
+                </a>
+              </div>
+              <p className="eyebrow eyebrow-sub">
+                done {formatClockTime(completesAt(active.startedAt, active.goalHours))}
+              </p>
             </div>
-            <p className="eyebrow eyebrow-sub">done {formatClockTime(completesAt(active.startedAt, active.goalHours))}</p>
+
+            {catchUpCard && (
+              <div className="banner" role="status">
+                <p>{catchUpCard.copy}</p>
+                <button type="button" onClick={() => setCatchUpCard(null)}>
+                  Dismiss
+                </button>
+              </div>
+            )}
+
+            {readout?.clockRolledBack && (
+              <div className="banner" role="status">
+                <p>Your device clock moved backwards. The elapsed time above may be wrong.</p>
+                <EditStartTime value={readout.suggestedStart} now={Date.now()} onSave={handleCorrectStart} />
+              </div>
+            )}
+
+            <div className="timer-ring-wrap">
+              <Ring ref={ringRef} milestonePercents={settings.milestonePercents} />
+              <div className="readout">
+                <button
+                  type="button"
+                  className="readout-time"
+                  onClick={() => setShowRemaining((v) => !v)}
+                  aria-label={
+                    showRemaining
+                      ? 'Showing time remaining. Tap to show elapsed time.'
+                      : 'Showing elapsed time. Tap to show time remaining.'
+                  }
+                >
+                  <TabularTime value={(showRemaining ? readout?.remainingDisplay : readout?.display) ?? '00:00:00'} />
+                </button>
+                <div className="readout-goal">goal {pluralHours(active.goalHours)}</div>
+              </div>
+            </div>
+
+            {readout?.absurd && (
+              <div className="banner" role="alert">
+                <p>This fast has run for over 168 hours. That&rsquo;s almost certainly a forgotten timer.</p>
+                <EditStartTime value={Date.now()} now={Date.now()} onSave={handleCorrectStart} />
+              </div>
+            )}
+
+            <button type="button" className="btn btn-end" onClick={handleEndFast}>
+              End fast
+            </button>
+
+            <RecentFasts history={history} />
           </div>
-
-          {catchUpCard && (
-            <div className="banner" role="status">
-              <p>{catchUpCard.copy}</p>
-              <button type="button" onClick={() => setCatchUpCard(null)}>
-                Dismiss
-              </button>
-            </div>
-          )}
-
-          {readout?.clockRolledBack && (
-            <div className="banner" role="status">
-              <p>Your device clock moved backwards. The elapsed time above may be wrong.</p>
-              <EditStartTime value={readout.suggestedStart} now={Date.now()} onSave={handleCorrectStart} />
-            </div>
-          )}
-
-          <div className="timer-ring-wrap">
-            <Ring ref={ringRef} milestonePercents={settings.milestonePercents} />
-            <div className="readout">
-              <button
-                type="button"
-                className="readout-time"
-                onClick={() => setShowRemaining((v) => !v)}
-                aria-label={
-                  showRemaining
-                    ? 'Showing time remaining. Tap to show elapsed time.'
-                    : 'Showing elapsed time. Tap to show time remaining.'
-                }
-              >
-                <TabularTime value={(showRemaining ? readout?.remainingDisplay : readout?.display) ?? '00:00:00'} />
-              </button>
-              <div className="readout-goal">goal {pluralHours(active.goalHours)}</div>
-            </div>
-          </div>
-
-          {readout?.absurd && (
-            <div className="banner" role="alert">
-              <p>This fast has run for over 168 hours. That&rsquo;s almost certainly a forgotten timer.</p>
-              <EditStartTime value={Date.now()} now={Date.now()} onSave={handleCorrectStart} />
-            </div>
-          )}
-
-          <button type="button" className="btn btn-end" onClick={handleEndFast}>
-            End fast
-          </button>
-
-          <RecentFasts history={history} />
         </main>
       ) : (
         <IdleStart defaultGoalHours={settings.defaultGoalHours} onStart={handleIdleStart} history={history} />
